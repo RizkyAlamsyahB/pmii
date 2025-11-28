@@ -1,0 +1,16 @@
+# Abaikan folder Git
+.git
+.gitignore
+
+# Abaikan file Environment Lokal (Bahaya kalau kebawa)
+.env
+
+# Abaikan file markdown/dokumentasi
+README.md
+
+# Abaikan hasil build lokal (binary/exe)
+# Biar docker build murni dari source code
+*.exe
+*.test
+pmii-backend
+server
