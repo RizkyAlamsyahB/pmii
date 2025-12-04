@@ -25,8 +25,8 @@ func main() {
 	logger.Info.Printf("Environment: %s", cfg.Server.Environment)
 
 	// 3. Initialize JWT Secret
-	utils.InitJWT(cfg.JWT.Secret)
-	logger.Info.Println("✅ JWT initialized")
+	utils.InitJWT(cfg.JWT.Secret, cfg.JWT.ExpirationHours)
+	logger.Info.Printf("✅ JWT initialized (expiration: %d hours)", cfg.JWT.ExpirationHours)
 
 	// 3a. Initialize Token Blacklist
 	utils.InitBlacklist()

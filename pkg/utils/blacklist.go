@@ -34,7 +34,7 @@ func AddToBlacklist(token string, expiresAt time.Time) {
 func IsBlacklisted(token string) bool {
 	blacklist.mu.RLock()
 	defer blacklist.mu.RUnlock()
-	
+
 	expiresAt, exists := blacklist.tokens[token]
 	if !exists {
 		return false

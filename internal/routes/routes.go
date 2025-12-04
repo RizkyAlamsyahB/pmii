@@ -48,7 +48,7 @@ func SetupRoutes(
 		{
 			// Login dengan rate limiter (60 req/menit per IP)
 			auth.POST("/login", loginLimiter.Limit(), authHandler.Login)
-			
+
 			// Logout (butuh auth)
 			auth.POST("/logout", middleware.AuthMiddleware(), authHandler.Logout)
 		}

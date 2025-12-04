@@ -28,17 +28,17 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-	token := parts[1]
+		token := parts[1]
 
-	// Cek apakah token sudah di-blacklist (logout)
-	if utils.IsBlacklisted(token) {
-		c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Token tidak valid atau sesi telah berakhir"))
-		c.Abort()
-		return
-	}
+		// Cek apakah token sudah di-blacklist (logout)
+		if utils.IsBlacklisted(token) {
+			c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Token tidak valid atau sesi telah berakhir"))
+			c.Abort()
+			return
+		}
 
-	// Validasi token
-	claims, err := utils.ValidateJWT(token)
+		// Validasi token
+		claims, err := utils.ValidateJWT(token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Token tidak valid atau kadaluarsa"))
 			c.Abort()

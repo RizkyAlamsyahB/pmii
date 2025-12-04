@@ -15,11 +15,13 @@ type Claims struct {
 }
 
 var jwtSecret []byte
+var jwtExpirationHours int
 
-// InitJWT inisialisasi JWT secret key
-// Harus dipanggil saat aplikasi start dengan secret dari config
-func InitJWT(secret string) {
+// InitJWT inisialisasi JWT secret key dan expiration
+// Harus dipanggil saat aplikasi start dengan config
+func InitJWT(secret string, expirationHours int) {
 	jwtSecret = []byte(secret)
+	jwtExpirationHours = expirationHours
 }
 
 // GenerateJWT membuat JWT token dengan user ID dan role
@@ -29,8 +31,8 @@ func GenerateJWT(userID uint, role string) (string, error) {
 		return "", errors.New("JWT secret not initialized")
 	}
 
-	// Set expiration time 24 jam dari sekarang
-	expirationTime := time.Now().Add(24 * time.Hour)
+	// Set expiration time sesuai config (default 24 jam)
+	expirationTime := time.Now().Add(time.Duration(jwtExpirationHours) * time.Hour)
 
 	// Buat claims
 	claims := &Claims{
