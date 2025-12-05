@@ -32,8 +32,8 @@ func AddToBlacklist(token string, expiresAt time.Time) {
 
 // IsBlacklisted mengecek apakah token sudah di-blacklist
 func IsBlacklisted(token string) bool {
-	blacklist.mu.RLock()
-	defer blacklist.mu.RUnlock()
+	blacklist.mu.Lock()
+	defer blacklist.mu.Unlock()
 
 	expiresAt, exists := blacklist.tokens[token]
 	if !exists {
@@ -42,11 +42,7 @@ func IsBlacklisted(token string) bool {
 
 	// Jika token sudah expired, hapus dari blacklist
 	if time.Now().After(expiresAt) {
-		blacklist.mu.RUnlock()
-		blacklist.mu.Lock()
 		delete(blacklist.tokens, token)
-		blacklist.mu.Unlock()
-		blacklist.mu.RLock()
 		return false
 	}
 
