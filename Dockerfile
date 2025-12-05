@@ -25,4 +25,4 @@ COPY --from=builder /app/migrations ./migrations
 EXPOSE 8080
 
 # Jalankan aplikasi
-CMD ["./pmii-backend"]d
+CMD ["./pmii-backend"]
