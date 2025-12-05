@@ -86,7 +86,8 @@ func RunMigrations(config Config) error {
 
 	// Run migrations
 	log.Println("🔄 Running database migrations...")
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+	err = m.Up() // assign ke err yang sudah ada
+	if err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 

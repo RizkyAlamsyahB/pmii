@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: pmii-api
-    restart: unless-stopped
+    restart: on-failure:3  # Retry max 3x, lalu stop
     ports:
       - "8080:8080"
     env_file:
