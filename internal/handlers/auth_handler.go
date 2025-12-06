@@ -101,17 +101,3 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Logout berhasil", nil))
 }
-
-// getRoleName convert level code ke nama role
-func getRoleName(level string) string {
-	switch level {
-	case "1":
-		return "admin"
-	case "2":
-		return "author"
-	case "3":
-		return "contributor"
-	default:
-		return "user"
-	}
-}

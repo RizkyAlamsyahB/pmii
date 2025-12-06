@@ -6,7 +6,7 @@ type User struct {
 	Name     string `gorm:"column:user_name;type:varchar(100)" json:"name"`
 	Email    string `gorm:"column:user_email;type:varchar(60);uniqueIndex" json:"email"`
 	Password string `gorm:"column:user_password;type:varchar(255)" json:"-"`             // bcrypt hash
-	Level    string `gorm:"column:user_level;type:varchar(10)" json:"level"`             // 1=Admin, 2=Author
+	Level    string `gorm:"column:user_level;type:varchar(10)" json:"level"`             // 1=Admin, 2=User
 	Status   string `gorm:"column:user_status;type:varchar(10);default:1" json:"status"` // 1=Active, 0=Inactive
 	Photo    string `gorm:"column:user_photo;type:varchar(40)" json:"-"`                 // Filename only, transform in getter
 }

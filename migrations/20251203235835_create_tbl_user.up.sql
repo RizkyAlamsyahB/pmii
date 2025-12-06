@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS tbl_user (
     user_name VARCHAR(100) NOT NULL,
     user_email VARCHAR(60) NOT NULL,
     user_password VARCHAR(255) NOT NULL, -- Changed from VARCHAR(40) to support bcrypt hashes
-    user_level VARCHAR(10) NOT NULL DEFAULT '2', -- 1=Admin, 2=Author, 3=Contributor
+    user_level VARCHAR(10) NOT NULL DEFAULT '2', -- 1=Admin, 2=User
     user_status VARCHAR(10) NOT NULL DEFAULT '1', -- 1=Active, 0=Inactive
     user_photo VARCHAR(40) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
