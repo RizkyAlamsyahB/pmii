@@ -59,6 +59,9 @@ func SetupRoutes(
 		adminRoutes := v1.Group("/admin")
 		adminRoutes.Use(middleware.AuthMiddleware(), middleware.RequireRole("1"))
 		{
+			// GET /v1/admin/dashboard - Admin dashboard
+			adminRoutes.GET("/dashboard", adminHandler.GetDashboard)
+
 			// GET /v1/admin/users - List all users (Admin only)
 			adminRoutes.GET("/users", adminHandler.GetAllUsers)
 		}
@@ -67,6 +70,9 @@ func SetupRoutes(
 		userRoutes := v1.Group("/user")
 		userRoutes.Use(middleware.AuthMiddleware())
 		{
+			// GET /v1/user/dashboard - User dashboard
+			userRoutes.GET("/dashboard", userHandler.GetDashboard)
+
 			// GET /v1/user/profile - Get own profile
 			userRoutes.GET("/profile", userHandler.GetProfile)
 		}

@@ -18,6 +18,21 @@ func NewAdminHandler(userService service.UserService) *AdminHandler {
 	return &AdminHandler{userService: userService}
 }
 
+// GetDashboard handles GET /admin/dashboard (Admin Only)
+// Menampilkan welcome message untuk admin dashboard
+func (h *AdminHandler) GetDashboard(c *gin.Context) {
+	// Get user info dari context (di-set oleh AuthMiddleware)
+	userID, _ := c.Get("user_id")
+
+	response := gin.H{
+		"userId":  userID,
+		"role":    "admin",
+		"message": "Welcome to Admin Dashboard",
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Dashboard admin berhasil diakses", response))
+}
+
 // GetAllUsers handles GET /admin/users (Admin Only)
 // Menampilkan list semua user di sistem
 func (h *AdminHandler) GetAllUsers(c *gin.Context) {

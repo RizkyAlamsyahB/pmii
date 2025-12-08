@@ -18,6 +18,21 @@ func NewUserHandler(userService service.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
+// GetDashboard handles GET /user/dashboard (Authenticated User)
+// Menampilkan welcome message untuk user dashboard
+func (h *UserHandler) GetDashboard(c *gin.Context) {
+	// Get user info dari context (di-set oleh AuthMiddleware)
+	userID, _ := c.Get("user_id")
+
+	response := gin.H{
+		"userId":  userID,
+		"role":    "user",
+		"message": "Welcome to User Dashboard",
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Dashboard user berhasil diakses", response))
+}
+
 // GetProfile handles GET /user/profile (Authenticated User)
 // Menampilkan profil user yang sedang login
 func (h *UserHandler) GetProfile(c *gin.Context) {
