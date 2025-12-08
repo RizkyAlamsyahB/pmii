@@ -76,5 +76,16 @@ func SetupRoutes(
 			// GET /v1/user/profile - Get own profile
 			userRoutes.GET("/profile", userHandler.GetProfile)
 		}
+
+		posts := v1.Group("/posts")
+		{
+			posts.POST("", handlers.CreatePost)       // Create
+			posts.GET("", handlers.GetPosts)          // Read All
+			posts.GET("/:id", handlers.GetPost)       // Read One
+			posts.PUT("/:id", handlers.UpdatePost)    // Update
+			posts.DELETE("/:id", handlers.DeletePost) // Delete
+		}
+
 	}
+
 }

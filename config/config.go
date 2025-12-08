@@ -5,7 +5,11 @@ import (
 	"log"
 
 	"github.com/spf13/viper"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
+
+var DB *gorm.DB
 
 // Config holds all configuration for the application
 type Config struct {
@@ -83,4 +87,24 @@ func Load() (*Config, error) {
 
 	log.Println("✅ Configuration loaded successfully")
 	return config, nil
+}
+
+// Panggil fungsi ini di main.go setelah Load config
+func InitDB(cfg *Config) {
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Asia/Jakarta",
+		cfg.Database.Host,
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.DBName,
+		cfg.Database.Port,
+	)
+
+	var err error
+	// Isi variabel global DB
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("❌ Failed to connect to database:", err)
+	}
+
+	log.Println("✅ Database connected successfully")
 }

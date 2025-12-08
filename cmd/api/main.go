@@ -22,6 +22,11 @@ func main() {
 	if err != nil {
 		logger.Error.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	config.InitDB(cfg)
+	// Ini akan membuat tabel 'posts' di database berdasarkan struct Post di handler
+	config.DB.AutoMigrate(&handlers.Post{})
+
 	logger.Info.Printf("Environment: %s", cfg.Server.Environment)
 
 	// 3. Initialize JWT Secret
