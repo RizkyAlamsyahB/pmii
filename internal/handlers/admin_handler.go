@@ -25,7 +25,7 @@ func (h *AdminHandler) GetDashboard(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
 	response := gin.H{
-		"userId":  userID,
+		"id":      userID,
 		"role":    "admin",
 		"message": "Welcome to Admin Dashboard",
 	}
