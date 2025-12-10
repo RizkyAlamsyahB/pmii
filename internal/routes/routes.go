@@ -13,6 +13,8 @@ import (
 func SetupRoutes(
 	r *gin.Engine,
 	authHandler *handlers.AuthHandler,
+	adminHandler *handlers.AdminHandler,
+	userHandler *handlers.UserHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -51,6 +53,28 @@ func SetupRoutes(
 
 			// Logout (butuh auth)
 			auth.POST("/logout", middleware.AuthMiddleware(), authHandler.Logout)
+		}
+
+		// Admin Routes - Requires Admin Role (Level 1)
+		adminRoutes := v1.Group("/admin")
+		adminRoutes.Use(middleware.AuthMiddleware(), middleware.RequireRole("1"))
+		{
+			// GET /v1/admin/dashboard - Admin dashboard
+			adminRoutes.GET("/dashboard", adminHandler.GetDashboard)
+
+			// GET /v1/admin/users - List all users (Admin only)
+			adminRoutes.GET("/users", adminHandler.GetAllUsers)
+		}
+
+		// User Routes - Requires Authentication (Any authenticated user)
+		userRoutes := v1.Group("/user")
+		userRoutes.Use(middleware.AuthMiddleware())
+		{
+			// GET /v1/user/dashboard - User dashboard
+			userRoutes.GET("/dashboard", userHandler.GetDashboard)
+
+			// GET /v1/user/profile - Get own profile
+			userRoutes.GET("/profile", userHandler.GetProfile)
 		}
 	}
 }

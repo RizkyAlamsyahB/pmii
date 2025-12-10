@@ -52,14 +52,22 @@ func main() {
 		logger.Error.Fatalf("Failed to connect to database: %v", err)
 	}
 
+	// 4c. Seed Default Users (Auto-run on startup)
+	if err := database.SeedDefaultUsers(db); err != nil {
+		logger.Error.Fatalf("Failed to seed default users: %v", err)
+	}
+
 	// 5. Initialize Repositories (Data Layer)
 	userRepo := repository.NewUserRepository(db)
 
 	// 6. Initialize Services (Business Logic Layer)
 	authService := service.NewAuthService(userRepo)
+	userService := service.NewUserService(userRepo)
 
 	// 7. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)
+	adminHandler := handlers.NewAdminHandler(userService)
+	userHandler := handlers.NewUserHandler(userService)
 
 	// 8. Setup Gin Router
 	if cfg.Server.Environment == "production" {
@@ -68,7 +76,7 @@ func main() {
 	r := gin.Default()
 
 	// 9. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
 
 	// 10. Start Server
 	serverAddr := ":" + cfg.Server.Port

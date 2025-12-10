@@ -10,6 +10,7 @@ import (
 type UserRepository interface {
 	FindByEmail(email string) (*domain.User, error)
 	FindByID(id uint) (*domain.User, error)
+	FindAll() ([]domain.User, error)
 	Create(user *domain.User) error
 	Update(user *domain.User) error
 	Delete(id uint) error
@@ -42,6 +43,15 @@ func (r *userRepository) FindByID(id uint) (*domain.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+// FindAll mengambil semua user
+func (r *userRepository) FindAll() ([]domain.User, error) {
+	var users []domain.User
+	if err := r.db.Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 // Create membuat user baru
