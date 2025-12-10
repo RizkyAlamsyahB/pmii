@@ -26,7 +26,11 @@ func main() {
 
 	config.InitDB(cfg)
 	// Ini akan membuat tabel 'posts' di database berdasarkan struct Post di handler
-	config.DB.AutoMigrate(&domain.Post{})
+	config.DB.AutoMigrate(
+		&domain.Category{},
+		&domain.Tag{},
+		&domain.Post{},
+	)
 
 	logger.Info.Printf("Environment: %s", cfg.Server.Environment)
 

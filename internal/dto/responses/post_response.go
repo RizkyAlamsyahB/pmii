@@ -1,6 +1,7 @@
 package responses
 
 import (
+	"strings"
 	"time"
 
 	// Ganti dengan nama module Anda
@@ -12,30 +13,37 @@ type PostResponse struct {
 	ID          int       `json:"id"`
 	Title       string    `json:"title"`
 	Slug        string    `json:"slug"`
-	Excerpt     string    `json:"excerpt"`           // Mapping dari Description
-	Content     string    `json:"content,omitempty"` // Omitempty agar di list tidak berat
-	ImageUrl    string    `json:"imageUrl"`          // Sesuai request: imageUrl
-	AuthorId    int       `json:"authorId"`
-	CategoryId  int       `json:"categoryId"`
-	Tags        string    `json:"tags"`
+	Excerpt     string    `json:"excerpt"`
+	Content     string    `json:"content,omitempty"`
+	ImageUrl    string    `json:"imageUrl"`
 	PublishedAt time.Time `json:"publishedAt"`
 	Views       int       `json:"views"`
+
+	CategoryId int    `json:"categoryId"`
+	AuthorId   int    `json:"authorId"`
+	Tags       string `json:"tags"`
 }
 
-// Function Helper untuk convert dari Domain (Database) ke Response (JSON)
 func FromDomainToPostResponse(post domain.Post) PostResponse {
+	// Convert Array Struct Tag -> Comma Separated String
+	var tagNames []string
+	for _, tag := range post.Tags {
+		tagNames = append(tagNames, tag.Name)
+	}
+	tagsString := strings.Join(tagNames, ",")
+
 	return PostResponse{
 		ID:          post.ID,
 		Title:       post.Title,
 		Slug:        post.Slug,
-		Excerpt:     post.Description, // Map description DB ke excerpt JSON
+		Excerpt:     post.Excerpt,
 		Content:     post.Content,
-		ImageUrl:    post.Image,
-		AuthorId:    post.UserID,
-		CategoryId:  post.CategoryID,
-		Tags:        post.Tags,
-		PublishedAt: post.Date,
+		ImageUrl:    post.FeaturedImage,
+		PublishedAt: post.PublishedAt,
 		Views:       post.Views,
+		CategoryId:  post.CategoryID,
+		AuthorId:    post.UserID,
+		Tags:        tagsString,
 	}
 }
 
@@ -43,7 +51,6 @@ func FromDomainToPostResponse(post domain.Post) PostResponse {
 func FromDomainListToPostResponse(posts []domain.Post) []PostResponse {
 	var responses []PostResponse
 	for _, post := range posts {
-		// Untuk list, kita kosongkan content agar payload ringan
 		dto := FromDomainToPostResponse(post)
 		dto.Content = ""
 		responses = append(responses, dto)

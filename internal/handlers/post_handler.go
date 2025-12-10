@@ -63,7 +63,6 @@ func CreatePost(c *gin.Context) {
 	// Tangkap Input
 	title := c.PostForm("title")
 	content := c.PostForm("content")
-	tags := c.PostForm("tags")
 	categoryID, _ := strconv.Atoi(c.PostForm("category_id"))
 
 	// Validasi Dasar
@@ -92,25 +91,47 @@ func CreatePost(c *gin.Context) {
 	// Buat Slug Sederhana
 	slug := strings.ToLower(strings.ReplaceAll(title, " ", "-"))
 
-	// Buat Excerpt (Deskripsi singkat)
+	// Buat Excerpt
 	excerpt := content
 	if len(content) > 150 {
 		excerpt = content[:150] + "..."
 	}
 
+	// LOGIC TAGS (Complex Part)
+	var tagEntities []domain.Tag
+	tagsInput := c.PostForm("tags") // input: "news,politik"
+	if tagsInput != "" {
+		tagNameList := strings.Split(tagsInput, ",")
+		for _, tagName := range tagNameList {
+			tagName = strings.TrimSpace(tagName)
+			if tagName == "" {
+				continue
+			}
+
+			tagSlug := strings.ToLower(strings.ReplaceAll(tagName, " ", "-"))
+
+			// Cari Tag di DB, kalau tidak ada -> Buat Baru. Kalau ada -> Pakai yang lama.
+			var tag domain.Tag
+			err := config.DB.Where(domain.Tag{Slug: tagSlug}).Attrs(domain.Tag{Name: tagName}).FirstOrCreate(&tag).Error
+			if err == nil {
+				tagEntities = append(tagEntities, tag)
+			}
+		}
+	}
+
 	// Isi Model Domain
 	post := domain.Post{
-		Title:       title,
-		Content:     content,
-		Description: excerpt,
-		Image:       imageUrl,
-		CategoryID:  categoryID,
-		Tags:        tags,
-		Slug:        slug,
-		Status:      1, // Default Publish
-		Views:       0,
-		UserID:      1, // Hardcode dulu
-		Date:        time.Now(),
+		Title:         title,
+		Slug:          slug,
+		Content:       content,
+		Excerpt:       excerpt,
+		FeaturedImage: imageUrl, // Kolom baru
+		CategoryID:    categoryID,
+		UserID:        1, // Hardcode ID user dulu
+		Status:        1,
+		Views:         0,
+		PublishedAt:   time.Now(),
+		Tags:          tagEntities, // GORM akan otomatis isi tabel pivot 'post_tags'
 	}
 
 	// Simpan ke DB
@@ -177,50 +198,72 @@ func UpdatePost(c *gin.Context) {
 	id := c.Param("id")
 	var post domain.Post
 
-	// Cek Data Eksisting
-	if err := config.DB.Where("post_id = ?", id).First(&post).Error; err != nil {
+	// 1. Cek Data Eksisting (Preload Tags agar tag lama terbaca)
+	if err := config.DB.Preload("Tags").Where("id = ?", id).First(&post).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Berita tidak ditemukan"))
 		return
 	}
 
-	// Update Text Fields jika ada input
+	// 2. Update Text Fields jika ada input
 	if val := c.PostForm("title"); val != "" {
 		post.Title = val
 		post.Slug = strings.ToLower(strings.ReplaceAll(val, " ", "-"))
 	}
 	if val := c.PostForm("content"); val != "" {
 		post.Content = val
-		// Update excerpt juga jika konten berubah
 		if len(val) > 150 {
-			post.Description = val[:150] + "..."
+			post.Excerpt = val[:150] + "..."
 		} else {
-			post.Description = val
+			post.Excerpt = val
 		}
 	}
-	if val := c.PostForm("tags"); val != "" {
-		post.Tags = val
-	}
+
+	// Update Category ID
 	if val := c.PostForm("category_id"); val != "" {
 		if catID, err := strconv.Atoi(val); err == nil {
 			post.CategoryID = catID
 		}
 	}
 
-	// Cek Image Baru
+	// 3. LOGIC UPDATE TAGS (PENTING: Ini perbaikan error "val")
+	tagString := c.PostForm("tags")
+	if tagString != "" {
+		var tagEntities []domain.Tag
+		tagNameList := strings.Split(tagString, ",")
+
+		for _, tagName := range tagNameList {
+			tagName = strings.TrimSpace(tagName)
+			if tagName == "" {
+				continue
+			}
+
+			tagSlug := strings.ToLower(strings.ReplaceAll(tagName, " ", "-"))
+
+			// Cari atau Buat Tag baru
+			var tag domain.Tag
+			err := config.DB.Where(domain.Tag{Slug: tagSlug}).Attrs(domain.Tag{Name: tagName}).FirstOrCreate(&tag).Error
+			if err == nil {
+				tagEntities = append(tagEntities, tag)
+			}
+		}
+
+		config.DB.Model(&post).Association("Tags").Replace(tagEntities)
+	}
+
+	// 4. Cek Image Baru (Update jika ada file)
 	fileHeader, err := c.FormFile("image")
 	if err == nil {
 		file, _ := fileHeader.Open()
 		defer file.Close()
 		filename := "post-update-" + time.Now().Format("20060102-150405")
 		newUrl, _ := utils.UploadToCloudinary(file, filename)
-		post.Image = newUrl
+		post.FeaturedImage = newUrl
 	}
 
-	// Simpan Perubahan
+	// 5. Simpan Perubahan ke Tabel Posts
 	config.DB.Save(&post)
 
-	// Konversi ke DTO Response
+	config.DB.Preload("Category").Preload("Tags").First(&post, post.ID)
 	responseDTO := responses.FromDomainToPostResponse(post)
-
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Berita berhasil diupdate", responseDTO))
 }
