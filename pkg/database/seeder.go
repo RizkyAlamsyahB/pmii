@@ -15,7 +15,7 @@ func SeedDefaultUsers(db *gorm.DB) error {
 
 	// 1. Seed Admin User
 	var adminCount int64
-	db.Model(&domain.User{}).Where("user_email = ?", "admin@pmii.id").Count(&adminCount)
+	db.Model(&domain.User{}).Where("email = ?", "admin@pmii.id").Count(&adminCount)
 
 	if adminCount == 0 {
 		// Hash password admin123
@@ -25,12 +25,12 @@ func SeedDefaultUsers(db *gorm.DB) error {
 		}
 
 		admin := domain.User{
-			Name:     "Administrator",
-			Email:    "admin@pmii.id",
-			Password: hashedPassword,
-			Level:    "1", // Admin
-			Status:   "1", // Active
-			Photo:    "",
+			Role:         1, // Admin
+			FullName:     "Administrator",
+			Email:        "admin@pmii.id",
+			PasswordHash: hashedPassword,
+			PhotoURI:     nil,
+			IsActive:     true,
 		}
 
 		if err := db.Create(&admin).Error; err != nil {
@@ -41,9 +41,9 @@ func SeedDefaultUsers(db *gorm.DB) error {
 		log.Println("ℹ️  Admin user already exists")
 	}
 
-	// 2. Seed Regular User
+	// 2. Seed Regular User (Author)
 	var userCount int64
-	db.Model(&domain.User{}).Where("user_email = ?", "user@pmii.id").Count(&userCount)
+	db.Model(&domain.User{}).Where("email = ?", "user@pmii.id").Count(&userCount)
 
 	if userCount == 0 {
 		// Hash password user123
@@ -53,12 +53,12 @@ func SeedDefaultUsers(db *gorm.DB) error {
 		}
 
 		user := domain.User{
-			Name:     "Regular User",
-			Email:    "user@pmii.id",
-			Password: hashedPassword,
-			Level:    "2", // User
-			Status:   "1", // Active
-			Photo:    "",
+			Role:         2, // Author
+			FullName:     "Regular User",
+			Email:        "user@pmii.id",
+			PasswordHash: hashedPassword,
+			PhotoURI:     nil,
+			IsActive:     true,
 		}
 
 		if err := db.Create(&user).Error; err != nil {

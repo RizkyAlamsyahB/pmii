@@ -43,8 +43,8 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	// Convert ke uint
-	id, ok := userID.(uint)
+	// Convert ke int
+	id, ok := userID.(int)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Terjadi kesalahan sistem"))
 		return
@@ -58,13 +58,17 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 	}
 
 	// Convert domain.User ke UserProfileResponse DTO
+	photo := ""
+	if user.PhotoURI != nil {
+		photo = *user.PhotoURI
+	}
 	profile := responses.UserProfileResponse{
 		ID:       user.ID,
-		FullName: user.Name,
+		FullName: user.FullName,
 		Email:    user.Email,
-		Role:     getRoleName(user.Level),
-		Status:   getStatusName(user.Status),
-		Photo:    user.Photo, // Bisa di-transform ke URL jika diperlukan
+		Role:     getRoleName(user.Role),
+		Status:   getStatusName(user.IsActive),
+		Photo:    photo,
 	}
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Profil berhasil diambil", profile))

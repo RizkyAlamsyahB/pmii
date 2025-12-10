@@ -8,7 +8,7 @@ type LoginResponse struct {
 
 // UserDTO adalah DTO untuk data user (tanpa data sensitif)
 type UserDTO struct {
-	ID       uint   `json:"id"`
+	ID       int    `json:"id"`
 	FullName string `json:"fullName"`
 	Email    string `json:"email"`
 	Role     string `json:"role"`

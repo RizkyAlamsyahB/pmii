@@ -66,9 +66,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Token: token,
 		User: responses.UserDTO{
 			ID:       user.ID,
-			FullName: user.Name,
+			FullName: user.FullName,
 			Email:    user.Email,
-			Role:     getRoleName(user.Level),
+			Role:     getRoleName(user.Role),
 		},
 	}
 

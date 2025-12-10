@@ -1,25 +1,28 @@
 package handlers
 
-// getRoleName convert level code ke nama role
-func getRoleName(level string) string {
-	switch level {
-	case "1":
+import "strconv"
+
+// getRoleName convert role code ke nama role
+func getRoleName(role int) string {
+	switch role {
+	case 1:
 		return "admin"
-	case "2":
-		return "user"
+	case 2:
+		return "author"
 	default:
-		return "user"
+		return "author"
 	}
 }
 
-// getStatusName convert status code ke nama status
-func getStatusName(status string) string {
-	switch status {
-	case "1":
+// getStatusName convert isActive bool ke nama status
+func getStatusName(isActive bool) string {
+	if isActive {
 		return "active"
-	case "0":
-		return "inactive"
-	default:
-		return "unknown"
 	}
+	return "inactive"
+}
+
+// getRoleString convert int role to string for JWT (keeps numeric values)
+func getRoleString(role int) string {
+	return strconv.Itoa(role)
 }
