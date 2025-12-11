@@ -60,24 +60,24 @@ func CreatePost(c *gin.Context) {
 		return
 	}
 
-	imageUrl := ""
+	imageName := ""
+
 	fileHeader, err := c.FormFile("image")
 	if err == nil {
 		file, _ := fileHeader.Open()
 		defer file.Close()
 		filename := "post-" + time.Now().Format("20060102-150405")
 
-		uploadedUrl, errUpload := utils.UploadToCloudinary(file, filename)
+		_, errUpload := utils.UploadToCloudinary(file, filename)
 		if errUpload != nil {
 			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal upload gambar"))
 			return
 		}
-		imageUrl = uploadedUrl
+		imageName = filename + ".png"
 	}
 
-	// Konversi string/nilai menjadi pointer
-	var excerptPtr *string
-	var featuredImagePtr *string
+	var excerptPtr *string = nil
+	var featuredImagePtr *string = nil
 
 	slug := strings.ToLower(strings.ReplaceAll(title, " ", "-"))
 
@@ -90,8 +90,8 @@ func CreatePost(c *gin.Context) {
 		excerptPtr = &excerpt
 	}
 
-	if imageUrl != "" {
-		featuredImagePtr = &imageUrl
+	if imageName != "" {
+		featuredImagePtr = &imageName
 	}
 
 	publishedTime := time.Now()
@@ -156,8 +156,6 @@ func GetPost(c *gin.Context) {
 		return
 	}
 
-	// LOGIKA INCREMENT VIEWS DIHAPUS KARENA FIELD TIDAK ADA DI DOMAIN/DB
-
 	responseDTO := responses.FromDomainToPostResponse(post)
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Detail berita ditemukan", responseDTO))
@@ -192,13 +190,18 @@ func UpdatePost(c *gin.Context) {
 		post.Title = val
 		post.Slug = strings.ToLower(strings.ReplaceAll(val, " ", "-"))
 	}
+
 	if val := c.PostForm("content"); val != "" {
 		post.Content = val
 		excerpt := val
 		if len(val) > 150 {
 			excerpt = val[:150] + "..."
 		}
-		post.Excerpt = &excerpt
+		if len(excerpt) > 0 {
+			post.Excerpt = &excerpt
+		} else {
+			post.Excerpt = nil
+		}
 	}
 
 	if val := c.PostForm("category_id"); val != "" {
@@ -228,17 +231,25 @@ func UpdatePost(c *gin.Context) {
 		}
 
 		config.DB.Model(&post).Association("Tags").Replace(tagEntities)
-	} else if c.PostForm("tags") != "" { // PERBAIKAN: Menggunakan c.PostForm()
+	} else if c.PostForm("tags") != "" {
 		config.DB.Model(&post).Association("Tags").Clear()
 	}
 
+	// --- LOGIKA GAMBAR UPDATE: MENYIMPAN HANYA NAMA FILE ---
 	fileHeader, err := c.FormFile("image")
 	if err == nil {
 		file, _ := fileHeader.Open()
 		defer file.Close()
 		filename := "post-update-" + time.Now().Format("20060102-150405")
-		newUrl, _ := utils.UploadToCloudinary(file, filename)
-		post.FeaturedImage = &newUrl
+
+		// Upload dan dapatkan URL (hanya untuk validasi)
+		_, _ = utils.UploadToCloudinary(file, filename)
+
+		// Simpan hanya nama file/key Cloudinary
+		newImageName := filename + ".png"
+		post.FeaturedImage = &newImageName
+	} else if val, ok := c.GetPostForm("image"); !ok && val == "" {
+		post.FeaturedImage = nil
 	}
 
 	config.DB.Save(&post)

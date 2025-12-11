@@ -7,6 +7,18 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
 )
 
+// Konstanta CLOUDINARY_BASE_URL yang tidak terpakai dihapus.
+const CUSTOM_IMAGE_BASE_URL = "https://api.pmii.id/public/uploads/"
+
+// Fungsi Helper untuk membangun URL dari nama file
+func buildImageUrl(filename string) string {
+	if filename == "" {
+		return ""
+	}
+	// Menggunakan Base URL custom sesuai dokumentasi Anda
+	return CUSTOM_IMAGE_BASE_URL + filename
+}
+
 // PostResponse adalah bentuk JSON yang akan dikirim ke client
 type PostResponse struct {
 	ID          int       `json:"id"`
@@ -16,7 +28,7 @@ type PostResponse struct {
 	Content     string    `json:"content,omitempty"`
 	ImageUrl    string    `json:"imageUrl"`
 	PublishedAt time.Time `json:"publishedAt"`
-	Views       int       `json:"views"`
+	// Field Views dihapus karena tidak ada di domain/DB
 
 	CategoryId int    `json:"categoryId"`
 	AuthorId   int    `json:"authorId"`
@@ -44,7 +56,9 @@ func FromDomainToPostResponse(post domain.Post) PostResponse {
 	// ImageUrl (FeaturedImage)
 	imageUrl := ""
 	if post.FeaturedImage != nil {
-		imageUrl = *post.FeaturedImage
+		filename := *post.FeaturedImage
+		// Menggunakan helper baru untuk membuat Full URL
+		imageUrl = buildImageUrl(filename)
 	}
 
 	// PublishedAt
@@ -52,8 +66,6 @@ func FromDomainToPostResponse(post domain.Post) PostResponse {
 	if post.PublishedAt != nil {
 		publishedAt = *post.PublishedAt
 	} else {
-		// Jika PublishedAt null/nil (misalnya status masih 'draft'), gunakan waktu sekarang atau CreatedAt
-		// Saya gunakan CreatedAt karena itu pasti terisi
 		publishedAt = post.CreatedAt
 	}
 
@@ -66,7 +78,7 @@ func FromDomainToPostResponse(post domain.Post) PostResponse {
 		Content:     post.Content,
 		ImageUrl:    imageUrl,
 		PublishedAt: publishedAt,
-		// Views:       post.Views,
+		// Views sudah dihapus dari struct
 		CategoryId: post.CategoryID,
 		AuthorId:   post.UserID,
 		Tags:       tagsString,
