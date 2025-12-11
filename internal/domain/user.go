@@ -1,35 +1,31 @@
 package domain
 
-// User domain model - Maps to tbl_user (legacy structure)
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
+// User represents a user account in the system
 type User struct {
-	ID       uint   `gorm:"column:user_id;primaryKey;autoIncrement" json:"id"`
-	Name     string `gorm:"column:user_name;type:varchar(100)" json:"name"`
-	Email    string `gorm:"column:user_email;type:varchar(60);uniqueIndex" json:"email"`
-	Password string `gorm:"column:user_password;type:varchar(255)" json:"-"`             // bcrypt hash
-	Level    string `gorm:"column:user_level;type:varchar(10)" json:"level"`             // 1=Admin, 2=User
-	Status   string `gorm:"column:user_status;type:varchar(10);default:1" json:"status"` // 1=Active, 0=Inactive
-	Photo    string `gorm:"column:user_photo;type:varchar(40)" json:"-"`                 // Filename only, transform in getter
+	ID           int            `gorm:"primaryKey;autoIncrement" json:"id"`
+	Role         int            `gorm:"not null;default:2" json:"role"` // 1=Admin, 2=Author
+	FullName     string         `gorm:"type:varchar(100);not null" json:"full_name"`
+	Email        string         `gorm:"type:varchar(100);uniqueIndex;not null" json:"email"`
+	PasswordHash string         `gorm:"type:varchar(255);not null" json:"-"`
+	PhotoURI     *string        `gorm:"type:varchar(255)" json:"photo_uri,omitempty"`
+	IsActive     bool           `gorm:"default:true" json:"is_active"`
+	CreatedAt    time.Time      `gorm:"default:now()" json:"created_at"`
+	UpdatedAt    time.Time      `gorm:"default:now()" json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
-// TableName override nama tabel di database (legacy table name)
+// TableName specifies the table name for User
 func (User) TableName() string {
-	return "tbl_user"
+	return "users"
 }
 
-// GetPhotoURL returns full URL for user photo
-func (u *User) GetPhotoURL(baseURL string) string {
-	if u.Photo == "" {
-		return ""
-	}
-	return baseURL + "/public/uploads/" + u.Photo
-}
-
-// IsAdmin checks if user is admin
+// IsAdmin checks if user has admin role
 func (u *User) IsAdmin() bool {
-	return u.Level == "1"
-}
-
-// IsActive checks if user is active
-func (u *User) IsActive() bool {
-	return u.Status == "1"
+	return u.Role == 1
 }

@@ -20,11 +20,11 @@ func (m *MockUserRepository) FindByEmail(email string) (*domain.User, error) {
 }
 
 // Stub methods (interface requirement)
-func (m *MockUserRepository) Create(user *domain.User) error         { return nil }
-func (m *MockUserRepository) Update(user *domain.User) error         { return nil }
-func (m *MockUserRepository) Delete(id uint) error                   { return nil }
-func (m *MockUserRepository) FindByID(id uint) (*domain.User, error) { return nil, nil }
-func (m *MockUserRepository) FindAll() ([]domain.User, error)        { return nil, nil }
+func (m *MockUserRepository) Create(user *domain.User) error        { return nil }
+func (m *MockUserRepository) Update(user *domain.User) error        { return nil }
+func (m *MockUserRepository) Delete(id int) error                   { return nil }
+func (m *MockUserRepository) FindByID(id int) (*domain.User, error) { return nil, nil }
+func (m *MockUserRepository) FindAll() ([]domain.User, error)       { return nil, nil }
 
 // TestLogin_UserNotFound menguji login dengan email yang tidak terdaftar
 func TestLogin_UserNotFound(t *testing.T) {
@@ -56,11 +56,11 @@ func TestLogin_WrongPassword(t *testing.T) {
 	mockRepo := &MockUserRepository{
 		FindByEmailFunc: func(email string) (*domain.User, error) {
 			return &domain.User{
-				ID:       1,
-				Email:    "test@example.com",
-				Password: hashedPassword,
-				Level:    "1",
-				Status:   "active",
+				ID:           1,
+				Email:        "test@example.com",
+				PasswordHash: hashedPassword,
+				Role:         1,
+				IsActive:     true,
 			}, nil
 		},
 	}
@@ -86,11 +86,11 @@ func TestLogin_InactiveUser(t *testing.T) {
 	mockRepo := &MockUserRepository{
 		FindByEmailFunc: func(email string) (*domain.User, error) {
 			return &domain.User{
-				ID:       1,
-				Email:    "test@example.com",
-				Password: hashedPassword,
-				Level:    "1",
-				Status:   "inactive",
+				ID:           1,
+				Email:        "test@example.com",
+				PasswordHash: hashedPassword,
+				Role:         1,
+				IsActive:     false,
 			}, nil
 		},
 	}

@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
@@ -32,17 +33,17 @@ func (s *authService) Login(email, password string) (*domain.User, string, error
 	}
 
 	// 2. Verify password dengan bcrypt
-	if !utils.CheckPasswordHash(password, user.Password) {
+	if !utils.CheckPasswordHash(password, user.PasswordHash) {
 		return nil, "", errors.New("invalid credentials")
 	}
 
 	// 3. Cek status user aktif
-	if user.Status != "1" {
+	if !user.IsActive {
 		return nil, "", errors.New("user account is inactive")
 	}
 
-	// 4. Generate JWT token
-	token, err := utils.GenerateJWT(user.ID, user.Level)
+	// 4. Generate JWT token (convert role int to string)
+	token, err := utils.GenerateJWT(user.ID, strconv.Itoa(user.Role))
 	if err != nil {
 		return nil, "", errors.New("failed to generate token")
 	}

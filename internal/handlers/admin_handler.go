@@ -48,10 +48,10 @@ func (h *AdminHandler) GetAllUsers(c *gin.Context) {
 	for _, user := range users {
 		userList = append(userList, responses.UserListItem{
 			ID:       user.ID,
-			FullName: user.Name,
+			FullName: user.FullName,
 			Email:    user.Email,
-			Role:     getRoleName(user.Level),
-			Status:   getStatusName(user.Status),
+			Role:     getRoleName(user.Role),
+			Status:   getStatusName(user.IsActive),
 		})
 	}
 
