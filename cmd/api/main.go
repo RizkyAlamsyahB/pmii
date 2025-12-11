@@ -68,17 +68,20 @@ func main() {
 	// 6. Initialize Repositories (Data Layer)
 	userRepo := repository.NewUserRepository(db)
 	testimonialRepo := repository.NewTestimonialRepository(db)
+	memberRepo := repository.NewMemberRepository(db)
 
 	// 7. Initialize Services (Business Logic Layer)
 	authService := service.NewAuthService(userRepo)
 	userService := service.NewUserService(userRepo)
 	testimonialService := service.NewTestimonialService(testimonialRepo, cloudinaryService)
+	memberService := service.NewMemberService(memberRepo, cloudinaryService)
 
 	// 8. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)
 	adminHandler := handlers.NewAdminHandler(userService)
 	userHandler := handlers.NewUserHandler(userService)
 	testimonialHandler := handlers.NewTestimonialHandler(testimonialService)
+	memberHandler := handlers.NewMemberHandler(memberService)
 
 	// 9. Setup Gin Router
 	if cfg.Server.Environment == "production" {
@@ -87,7 +90,7 @@ func main() {
 	r := gin.Default()
 
 	// 10. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port
