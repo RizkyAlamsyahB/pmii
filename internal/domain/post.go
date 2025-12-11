@@ -7,22 +7,27 @@ import (
 )
 
 type Post struct {
-	ID            int            `gorm:"primaryKey;column:id" json:"id"`
-	UserID        int            `gorm:"column:user_id;not null" json:"authorId"`
-	CategoryID    int            `gorm:"column:category_id;not null" json:"categoryId"`
-	Category      Category       `gorm:"foreignKey:CategoryID;references:ID" json:"category"`
-	Title         string         `gorm:"column:title;size:255;not null" json:"title"`
-	Slug          string         `gorm:"column:slug;size:255;not null" json:"slug"`
-	Excerpt       string         `gorm:"column:excerpt;type:text" json:"excerpt"`
-	Content       string         `gorm:"column:content;type:text" json:"content"`
-	FeaturedImage string         `gorm:"column:featured_image;size:255" json:"imageUrl"`
-	Views         int            `gorm:"column:views;default:0" json:"views"`
-	Status        int            `gorm:"column:status;default:1" json:"status"`
-	Tags          []Tag          `gorm:"many2many:post_tags;foreignKey:ID;joinForeignKey:PostID;References:ID;joinReferences:TagID" json:"tags"`
-	PublishedAt   time.Time      `gorm:"column:published_at" json:"publishedAt"`
-	CreatedAt     time.Time      `gorm:"column:created_at;autoCreateTime" json:"createdAt"`
-	UpdatedAt     time.Time      `gorm:"column:updated_at;autoUpdateTime" json:"updatedAt"`
-	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at;index" json:"-"`
+	ID            int            `gorm:"primaryKey;autoIncrement" json:"id"`
+	UserID        int            `gorm:"not null" json:"user_id"`
+	CategoryID    int            `gorm:"not null" json:"category_id"`
+	Title         string         `gorm:"type:varchar(255);not null" json:"title"`
+	Slug          string         `gorm:"type:varchar(255);uniqueIndex;not null" json:"slug"`
+	Excerpt       *string        `gorm:"type:text" json:"excerpt,omitempty"`
+	Content       string         `gorm:"type:text;not null" json:"content"`
+	FeaturedImage *string        `gorm:"type:varchar(255)" json:"featured_image,omitempty"`
+	Status        PostStatus     `gorm:"type:post_status;not null;default:'draft'" json:"status"`
+	PublishedAt   *time.Time     `json:"published_at,omitempty"`
+	CreatedAt     time.Time      `gorm:"default:now()" json:"created_at"`
+	UpdatedAt     time.Time      `gorm:"default:now()" json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+
+	// Relationships
+	User     User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Category Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	Tags     []Tag    `gorm:"many2many:post_tags" json:"tags,omitempty"`
 }
 
-func (Post) TableName() string { return "posts" }
+// TableName specifies the table name for Post
+func (Post) TableName() string {
+	return "posts"
+}

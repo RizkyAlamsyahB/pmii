@@ -9,11 +9,11 @@ import (
 // Memudahkan mocking saat unit testing
 type UserRepository interface {
 	FindByEmail(email string) (*domain.User, error)
-	FindByID(id uint) (*domain.User, error)
+	FindByID(id int) (*domain.User, error)
 	FindAll() ([]domain.User, error)
 	Create(user *domain.User) error
 	Update(user *domain.User) error
-	Delete(id uint) error
+	Delete(id int) error
 }
 
 type userRepository struct {
@@ -29,15 +29,14 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 func (r *userRepository) FindByEmail(email string) (*domain.User, error) {
 	var user domain.User
 	// GORM otomatis melakukan parameter binding (Anti SQL Injection)
-	// Query ke kolom user_email di database (bukan email)
-	if err := r.db.Where("user_email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
 }
 
 // FindByID mencari user berdasarkan ID
-func (r *userRepository) FindByID(id uint) (*domain.User, error) {
+func (r *userRepository) FindByID(id int) (*domain.User, error) {
 	var user domain.User
 	if err := r.db.First(&user, id).Error; err != nil {
 		return nil, err
@@ -65,6 +64,6 @@ func (r *userRepository) Update(user *domain.User) error {
 }
 
 // Delete menghapus user berdasarkan ID
-func (r *userRepository) Delete(id uint) error {
+func (r *userRepository) Delete(id int) error {
 	return r.db.Delete(&domain.User{}, id).Error
 }

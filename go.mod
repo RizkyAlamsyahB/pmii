@@ -3,6 +3,7 @@ module github.com/garuda-labs-1/pmii-be
 go 1.24.0
 
 require (
+	github.com/cloudinary/cloudinary-go/v2 v2.14.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/golang-jwt/jwt/v5 v5.3.0

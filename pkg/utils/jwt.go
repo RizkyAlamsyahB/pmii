@@ -9,7 +9,7 @@ import (
 
 // Claims struktur untuk JWT payload
 type Claims struct {
-	UserID uint   `json:"user_id"`
+	UserID int    `json:"user_id"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
@@ -26,7 +26,7 @@ func InitJWT(secret string, expirationHours int) {
 
 // GenerateJWT membuat JWT token dengan user ID dan role
 // Token valid selama 24 jam
-func GenerateJWT(userID uint, role string) (string, error) {
+func GenerateJWT(userID int, role string) (string, error) {
 	if len(jwtSecret) == 0 {
 		return "", errors.New("JWT secret not initialized")
 	}

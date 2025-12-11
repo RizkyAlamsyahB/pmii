@@ -1,9 +1,13 @@
 package domain
 
+// Tag represents a tag that can be attached to posts
 type Tag struct {
-	ID   int    `gorm:"primaryKey;column:id" json:"id"`
-	Name string `gorm:"column:name;size:50;not null" json:"name"`
-	Slug string `gorm:"column:slug;size:50;not null" json:"slug"`
+	ID   int    `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name string `gorm:"type:varchar(50);not null" json:"name"`
+	Slug string `gorm:"type:varchar(50);uniqueIndex;not null" json:"slug"`
 }
 
-func (Tag) TableName() string { return "tags" }
+// TableName specifies the table name for Tag
+func (Tag) TableName() string {
+	return "tags"
+}

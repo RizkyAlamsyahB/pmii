@@ -10,7 +10,7 @@ import (
 // UserService interface untuk business logic user operations
 type UserService interface {
 	GetAllUsers() ([]domain.User, error)
-	GetUserByID(id uint) (*domain.User, error)
+	GetUserByID(id int) (*domain.User, error)
 }
 
 type userService struct {
@@ -32,7 +32,7 @@ func (s *userService) GetAllUsers() ([]domain.User, error) {
 }
 
 // GetUserByID mengambil user berdasarkan ID
-func (s *userService) GetUserByID(id uint) (*domain.User, error) {
+func (s *userService) GetUserByID(id int) (*domain.User, error) {
 	user, err := s.userRepo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("user tidak ditemukan")

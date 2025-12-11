@@ -39,7 +39,8 @@ services:
     networks:
       - pmii-network
 
-  # pgAdmin (Web UI)
+
+  # pgAdmin auto connect to PostgreSQL
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pmii-pgadmin
@@ -54,7 +55,6 @@ services:
         condition: service_healthy
     networks:
       - pmii-network
-
 networks:
   pmii-network:
     driver: bridge

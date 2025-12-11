@@ -13,9 +13,10 @@ var DB *gorm.DB
 
 // Config holds all configuration for the application
 type Config struct {
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Server   ServerConfig
+	Database   DatabaseConfig
+	JWT        JWTConfig
+	Server     ServerConfig
+	Cloudinary CloudinaryConfig
 }
 
 // DatabaseConfig holds database configuration
@@ -40,6 +41,11 @@ type ServerConfig struct {
 	Environment    string
 }
 
+// CloudinaryConfig holds Cloudinary configuration
+type CloudinaryConfig struct {
+	URL string
+}
+
 // Load loads configuration from .env file using Viper
 func Load() (*Config, error) {
 	// Set config file
@@ -59,6 +65,7 @@ func Load() (*Config, error) {
 		"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME",
 		"JWT_SECRET", "JWT_EXPIRATION_HOURS",
 		"PORT", "ENV", "ALLOWED_ORIGINS",
+		"CLOUDINARY_URL",
 	}
 	for _, key := range requiredKeys {
 		if !viper.IsSet(key) || viper.GetString(key) == "" {
@@ -82,6 +89,9 @@ func Load() (*Config, error) {
 			Port:           viper.GetString("PORT"),
 			AllowedOrigins: viper.GetString("ALLOWED_ORIGINS"),
 			Environment:    viper.GetString("ENV"),
+		},
+		Cloudinary: CloudinaryConfig{
+			URL: viper.GetString("CLOUDINARY_URL"),
 		},
 	}
 
