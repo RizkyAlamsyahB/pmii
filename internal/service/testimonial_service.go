@@ -21,7 +21,7 @@ type CloudinaryService interface {
 // TestimonialService interface untuk business logic testimonial
 type TestimonialService interface {
 	Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
-	GetAll(ctx context.Context) ([]responses.TestimonialResponse, error)
+	GetAll(ctx context.Context, page, limit int) ([]responses.TestimonialResponse, int, int, int64, error)
 	GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error)
 	Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
 	Delete(ctx context.Context, id int) error
@@ -85,11 +85,25 @@ func (s *testimonialService) Create(ctx context.Context, req requests.CreateTest
 	return s.toResponseDTO(testimonial), nil
 }
 
-// GetAll mengambil semua testimonial
-func (s *testimonialService) GetAll(ctx context.Context) ([]responses.TestimonialResponse, error) {
-	testimonials, err := s.testimonialRepo.FindAll()
+// GetAll mengambil semua testimonial dengan pagination
+func (s *testimonialService) GetAll(ctx context.Context, page, limit int) ([]responses.TestimonialResponse, int, int, int64, error) {
+	// Set default values
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	testimonials, total, err := s.testimonialRepo.FindAll(page, limit)
 	if err != nil {
-		return nil, errors.New("gagal mengambil data testimonial")
+		return nil, 0, 0, 0, errors.New("gagal mengambil data testimonial")
+	}
+
+	// Calculate last page
+	lastPage := int(total) / limit
+	if int(total)%limit != 0 {
+		lastPage++
 	}
 
 	// Convert to response DTOs
@@ -98,7 +112,7 @@ func (s *testimonialService) GetAll(ctx context.Context) ([]responses.Testimonia
 		result[i] = *s.toResponseDTO(&t)
 	}
 
-	return result, nil
+	return result, page, lastPage, total, nil
 }
 
 // GetByID mengambil testimonial berdasarkan ID
@@ -196,13 +210,13 @@ func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.Tes
 	}
 
 	return &responses.TestimonialResponse{
-		TestimonialID:        t.ID,
-		TestimonialName:      t.Name,
-		TestimonialOrg:       t.Organization,
-		TestimonialPosition:  t.Position,
-		TestimonialContent:   t.Content,
-		TestimonialImage:     imageURL,
-		TestimonialIsActive:  t.IsActive,
-		TestimonialCreatedAt: t.CreatedAt,
+		ID:           t.ID,
+		Name:         t.Name,
+		Organization: t.Organization,
+		Position:     t.Position,
+		Content:      t.Content,
+		ImageUrl:     imageURL,
+		IsActive:     t.IsActive,
+		CreatedAt:    t.CreatedAt,
 	}
 }

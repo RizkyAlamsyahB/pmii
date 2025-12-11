@@ -8,7 +8,7 @@ import (
 // TestimonialRepository interface untuk data access testimonial
 type TestimonialRepository interface {
 	Create(testimonial *domain.Testimonial) error
-	FindAll() ([]domain.Testimonial, error)
+	FindAll(page, limit int) ([]domain.Testimonial, int64, error)
 	FindByID(id int) (*domain.Testimonial, error)
 	Update(testimonial *domain.Testimonial) error
 	Delete(id int) error
@@ -28,11 +28,22 @@ func (r *testimonialRepository) Create(testimonial *domain.Testimonial) error {
 	return r.db.Create(testimonial).Error
 }
 
-// FindAll mengambil semua testimonial
-func (r *testimonialRepository) FindAll() ([]domain.Testimonial, error) {
+// FindAll mengambil semua testimonial dengan pagination
+func (r *testimonialRepository) FindAll(page, limit int) ([]domain.Testimonial, int64, error) {
 	var testimonials []domain.Testimonial
-	err := r.db.Order("created_at DESC").Find(&testimonials).Error
-	return testimonials, err
+	var total int64
+
+	// Count total records
+	if err := r.db.Model(&domain.Testimonial{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	// Get paginated data (no ordering, natural database order)
+	err := r.db.Limit(limit).Offset(offset).Find(&testimonials).Error
+	return testimonials, total, err
 }
 
 // FindByID mengambil testimonial berdasarkan ID

@@ -53,15 +53,19 @@ func (h *TestimonialHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, responses.SuccessResponse(201, "Testimonial berhasil dibuat", testimonial))
 }
 
-// GetAll handles GET /v1/testimonials
+// GetAll handles GET /v1/testimonials with pagination
 func (h *TestimonialHandler) GetAll(c *gin.Context) {
-	testimonials, err := h.testimonialService.GetAll(c.Request.Context())
+	// Parse query params
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	testimonials, currentPage, lastPage, total, err := h.testimonialService.GetAll(c.Request.Context(), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Berhasil mengambil data testimonial", testimonials))
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(200, "List of testimonials", testimonials, currentPage, limit, total, lastPage))
 }
 
 // GetByID handles GET /v1/testimonials/:id

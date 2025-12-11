@@ -2,14 +2,14 @@ package responses
 
 import "time"
 
-// TestimonialResponse adalah DTO untuk response testimonial
+// TestimonialResponse adalah DTO untuk response testimonial (mengikuti standar API)
 type TestimonialResponse struct {
-	TestimonialID        int       `json:"testimonialId"`
-	TestimonialName      string    `json:"testimonialName"`
-	TestimonialOrg       *string   `json:"testimonialOrg"`
-	TestimonialPosition  *string   `json:"testimonialPosition"`
-	TestimonialContent   string    `json:"testimonialContent"`
-	TestimonialImage     string    `json:"testimonialImage"`
-	TestimonialIsActive  bool      `json:"testimonialIsActive,omitempty"`
-	TestimonialCreatedAt time.Time `json:"testimonialCreatedAt"`
+	ID           int       `json:"id"`
+	Name         string    `json:"name"`
+	Organization *string   `json:"organization,omitempty"`
+	Position     *string   `json:"position,omitempty"`
+	Content      string    `json:"content"`
+	ImageUrl     string    `json:"imageUrl,omitempty"`
+	IsActive     bool      `json:"isActive"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
