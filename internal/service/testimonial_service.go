@@ -1,0 +1,202 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"mime/multipart"
+
+	"github.com/garuda-labs-1/pmii-be/internal/domain"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/pkg/cloudinary"
+)
+
+// TestimonialService interface untuk business logic testimonial
+type TestimonialService interface {
+	Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
+	GetAll(ctx context.Context) ([]responses.TestimonialResponse, error)
+	GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error)
+	Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
+	Delete(ctx context.Context, id int) error
+}
+
+type testimonialService struct {
+	testimonialRepo   repository.TestimonialRepository
+	cloudinaryService *cloudinary.Service
+}
+
+// NewTestimonialService constructor untuk TestimonialService
+func NewTestimonialService(testimonialRepo repository.TestimonialRepository, cloudinaryService *cloudinary.Service) TestimonialService {
+	return &testimonialService{
+		testimonialRepo:   testimonialRepo,
+		cloudinaryService: cloudinaryService,
+	}
+}
+
+// Create membuat testimonial baru dengan upload foto ke Cloudinary
+func (s *testimonialService) Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error) {
+	// Upload photo ke Cloudinary (jika ada)
+	var photoFilename *string
+	if photoFile != nil {
+		filename, err := s.cloudinaryService.UploadImage(ctx, "testimonials", photoFile)
+		if err != nil {
+			return nil, errors.New("gagal mengupload foto")
+		}
+		photoFilename = &filename
+	}
+
+	// Prepare domain entity
+	var org *string
+	if req.Organization != "" {
+		org = &req.Organization
+	}
+
+	var pos *string
+	if req.Position != "" {
+		pos = &req.Position
+	}
+
+	testimonial := &domain.Testimonial{
+		Name:         req.Name,
+		Organization: org,
+		Position:     pos,
+		Content:      req.Content,
+		PhotoURI:     photoFilename,
+		IsActive:     true,
+	}
+
+	// Save ke database
+	if err := s.testimonialRepo.Create(testimonial); err != nil {
+		// Rollback: hapus foto dari Cloudinary jika save gagal
+		if photoFilename != nil {
+			_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *photoFilename)
+		}
+		return nil, errors.New("gagal menyimpan testimonial")
+	}
+
+	// Convert to response DTO
+	return s.toResponseDTO(testimonial), nil
+}
+
+// GetAll mengambil semua testimonial
+func (s *testimonialService) GetAll(ctx context.Context) ([]responses.TestimonialResponse, error) {
+	testimonials, err := s.testimonialRepo.FindAll()
+	if err != nil {
+		return nil, errors.New("gagal mengambil data testimonial")
+	}
+
+	// Convert to response DTOs
+	result := make([]responses.TestimonialResponse, len(testimonials))
+	for i, t := range testimonials {
+		result[i] = *s.toResponseDTO(&t)
+	}
+
+	return result, nil
+}
+
+// GetByID mengambil testimonial berdasarkan ID
+func (s *testimonialService) GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error) {
+	testimonial, err := s.testimonialRepo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("testimonial tidak ditemukan")
+	}
+
+	return s.toResponseDTO(testimonial), nil
+}
+
+// Update mengupdate testimonial dengan optional upload foto baru
+func (s *testimonialService) Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error) {
+	// Ambil testimonial existing
+	testimonial, err := s.testimonialRepo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("testimonial tidak ditemukan")
+	}
+
+	// Simpan foto lama untuk rollback
+	oldPhotoURI := testimonial.PhotoURI
+
+	// Upload foto baru ke Cloudinary (jika ada)
+	if photoFile != nil {
+		filename, err := s.cloudinaryService.UploadImage(ctx, "testimonials", photoFile)
+		if err != nil {
+			return nil, errors.New("gagal mengupload foto")
+		}
+
+		// Hapus foto lama dari Cloudinary
+		if testimonial.PhotoURI != nil {
+			_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *testimonial.PhotoURI)
+		}
+
+		testimonial.PhotoURI = &filename
+	}
+
+	// Update fields yang dikirim
+	if req.Name != "" {
+		testimonial.Name = req.Name
+	}
+	if req.Organization != "" {
+		testimonial.Organization = &req.Organization
+	}
+	if req.Position != "" {
+		testimonial.Position = &req.Position
+	}
+	if req.Content != "" {
+		testimonial.Content = req.Content
+	}
+	if req.IsActive != nil {
+		testimonial.IsActive = *req.IsActive
+	}
+
+	// Save ke database
+	if err := s.testimonialRepo.Update(testimonial); err != nil {
+		// Rollback: restore foto lama jika update gagal
+		if photoFile != nil && testimonial.PhotoURI != nil {
+			_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *testimonial.PhotoURI)
+			testimonial.PhotoURI = oldPhotoURI
+		}
+		return nil, errors.New("gagal mengupdate testimonial")
+	}
+
+	return s.toResponseDTO(testimonial), nil
+}
+
+// Delete menghapus testimonial dan foto dari Cloudinary
+func (s *testimonialService) Delete(ctx context.Context, id int) error {
+	// Ambil testimonial untuk mendapatkan info foto
+	testimonial, err := s.testimonialRepo.FindByID(id)
+	if err != nil {
+		return errors.New("testimonial tidak ditemukan")
+	}
+
+	// Hapus dari database
+	if err := s.testimonialRepo.Delete(id); err != nil {
+		return errors.New("gagal menghapus testimonial")
+	}
+
+	// Hapus foto dari Cloudinary (jika ada)
+	if testimonial.PhotoURI != nil {
+		_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *testimonial.PhotoURI)
+	}
+
+	return nil
+}
+
+// toResponseDTO converts domain.Testimonial to responses.TestimonialResponse
+func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.TestimonialResponse {
+	var imageURL string
+	if t.PhotoURI != nil {
+		imageURL = s.cloudinaryService.GetImageURL("testimonials", *t.PhotoURI)
+	}
+
+	return &responses.TestimonialResponse{
+		TestimonialID:        t.ID,
+		TestimonialName:      t.Name,
+		TestimonialOrg:       t.Organization,
+		TestimonialPosition:  t.Position,
+		TestimonialContent:   t.Content,
+		TestimonialImage:     imageURL,
+		TestimonialIsActive:  t.IsActive,
+		TestimonialCreatedAt: t.CreatedAt,
+	}
+}
