@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/service"
@@ -33,25 +34,17 @@ func (h *UserHandler) GetDashboard(c *gin.Context) {
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Dashboard user berhasil diakses", response))
 }
 
-// GetProfile handles GET /user/profile (Authenticated User)
-// Menampilkan profil user yang sedang login
-func (h *UserHandler) GetProfile(c *gin.Context) {
-	// Ambil user_id dari context (di-set oleh AuthMiddleware)
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Token tidak valid"))
+// GetUserByID handles GET /users/:id
+func (h *UserHandler) GetUserByID(c *gin.Context) {
+	// Parse URL param :id
+	requestedID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "ID tidak valid"))
 		return
 	}
 
-	// Convert ke int
-	id, ok := userID.(int)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Terjadi kesalahan sistem"))
-		return
-	}
-
-	// Get user by ID dari service
-	user, err := h.userService.GetUserByID(id)
+	// Get user by ID dari service (access control already done by middleware)
+	user, err := h.userService.GetUserByID(requestedID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "User tidak ditemukan"))
 		return

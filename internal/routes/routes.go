@@ -83,14 +83,14 @@ func SetupRoutes(
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
-		userRoutes := v1.Group("/user")
+		userRoutes := v1.Group("/users")
 		userRoutes.Use(middleware.AuthMiddleware())
 		{
 			// GET /v1/user/dashboard - User dashboard
 			userRoutes.GET("/dashboard", userHandler.GetDashboard)
 
-			// GET /v1/user/profile - Get own profile
-			userRoutes.GET("/profile", userHandler.GetProfile)
+			// GET /v1/users/:id - Get user by ID (admin: any user, non-admin: own data only)
+			userRoutes.GET("/:id", middleware.RequireOwnerOrAdmin("id"), userHandler.GetUserByID)
 		}
 	}
 }
