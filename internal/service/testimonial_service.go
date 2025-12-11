@@ -9,8 +9,14 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
-	"github.com/garuda-labs-1/pmii-be/pkg/cloudinary"
 )
+
+// CloudinaryService interface untuk operasi cloudinary
+type CloudinaryService interface {
+	UploadImage(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteImage(ctx context.Context, folder string, filename string) error
+	GetImageURL(folder string, filename string) string
+}
 
 // TestimonialService interface untuk business logic testimonial
 type TestimonialService interface {
@@ -23,11 +29,11 @@ type TestimonialService interface {
 
 type testimonialService struct {
 	testimonialRepo   repository.TestimonialRepository
-	cloudinaryService *cloudinary.Service
+	cloudinaryService CloudinaryService
 }
 
 // NewTestimonialService constructor untuk TestimonialService
-func NewTestimonialService(testimonialRepo repository.TestimonialRepository, cloudinaryService *cloudinary.Service) TestimonialService {
+func NewTestimonialService(testimonialRepo repository.TestimonialRepository, cloudinaryService CloudinaryService) TestimonialService {
 	return &testimonialService{
 		testimonialRepo:   testimonialRepo,
 		cloudinaryService: cloudinaryService,
@@ -117,17 +123,13 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 	oldPhotoURI := testimonial.PhotoURI
 
 	// Upload foto baru ke Cloudinary (jika ada)
+	var newPhotoFilename *string
 	if photoFile != nil {
 		filename, err := s.cloudinaryService.UploadImage(ctx, "testimonials", photoFile)
 		if err != nil {
 			return nil, errors.New("gagal mengupload foto")
 		}
-
-		// Hapus foto lama dari Cloudinary
-		if testimonial.PhotoURI != nil {
-			_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *testimonial.PhotoURI)
-		}
-
+		newPhotoFilename = &filename
 		testimonial.PhotoURI = &filename
 	}
 
@@ -150,12 +152,16 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 
 	// Save ke database
 	if err := s.testimonialRepo.Update(testimonial); err != nil {
-		// Rollback: restore foto lama jika update gagal
-		if photoFile != nil && testimonial.PhotoURI != nil {
-			_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *testimonial.PhotoURI)
-			testimonial.PhotoURI = oldPhotoURI
+		// Rollback: hapus foto baru jika update gagal
+		if newPhotoFilename != nil {
+			_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *newPhotoFilename)
 		}
 		return nil, errors.New("gagal mengupdate testimonial")
+	}
+
+	// Hapus foto lama SETELAH database update berhasil
+	if newPhotoFilename != nil && oldPhotoURI != nil {
+		_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *oldPhotoURI)
 	}
 
 	return s.toResponseDTO(testimonial), nil
