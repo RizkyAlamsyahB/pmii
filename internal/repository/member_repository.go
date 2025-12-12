@@ -8,7 +8,7 @@ import (
 // MemberRepository interface untuk data access member
 type MemberRepository interface {
 	Create(member *domain.Member) error
-	FindAll() ([]domain.Member, error)
+	FindAll(page, limit int) ([]domain.Member, int64, error)
 	FindByID(id int) (*domain.Member, error)
 	Update(member *domain.Member) error
 	Delete(id int) error
@@ -28,11 +28,22 @@ func (r *memberRepository) Create(member *domain.Member) error {
 	return r.db.Create(member).Error
 }
 
-// FindAll mengambil semua member
-func (r *memberRepository) FindAll() ([]domain.Member, error) {
+// FindAll mengambil semua member dengan pagination
+func (r *memberRepository) FindAll(page, limit int) ([]domain.Member, int64, error) {
 	var members []domain.Member
-	err := r.db.Order("created_at DESC").Find(&members).Error
-	return members, err
+	var total int64
+
+	// Count total records
+	if err := r.db.Model(&domain.Member{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	// Get paginated data (no ordering, natural database order)
+	err := r.db.Limit(limit).Offset(offset).Find(&members).Error
+	return members, total, err
 }
 
 // FindByID mengambil member berdasarkan ID

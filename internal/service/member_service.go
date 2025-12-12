@@ -14,7 +14,7 @@ import (
 // MemberService interface untuk business logic member
 type MemberService interface {
 	Create(ctx context.Context, req requests.CreateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error)
-	GetAll(ctx context.Context) ([]responses.MemberResponse, error)
+	GetAll(ctx context.Context, page, limit int) ([]responses.MemberResponse, int, int, int64, error)
 	GetByID(ctx context.Context, id int) (*responses.MemberResponse, error)
 	Update(ctx context.Context, id int, req requests.UpdateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error)
 	Delete(ctx context.Context, id int) error
@@ -67,11 +67,25 @@ func (s *memberService) Create(ctx context.Context, req requests.CreateMemberReq
 	return s.toResponseDTO(member), nil
 }
 
-// GetAll mengambil semua member
-func (s *memberService) GetAll(ctx context.Context) ([]responses.MemberResponse, error) {
-	members, err := s.memberRepo.FindAll()
+// GetAll mengambil semua member dengan pagination
+func (s *memberService) GetAll(ctx context.Context, page, limit int) ([]responses.MemberResponse, int, int, int64, error) {
+	// Set default values
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	members, total, err := s.memberRepo.FindAll(page, limit)
 	if err != nil {
-		return nil, errors.New("gagal mengambil data member")
+		return nil, 0, 0, 0, errors.New("gagal mengambil data member")
+	}
+
+	// Calculate last page
+	lastPage := int(total) / limit
+	if int(total)%limit != 0 {
+		lastPage++
 	}
 
 	// Convert to response DTOs
@@ -80,7 +94,7 @@ func (s *memberService) GetAll(ctx context.Context) ([]responses.MemberResponse,
 		result[i] = *s.toResponseDTO(&m)
 	}
 
-	return result, nil
+	return result, page, lastPage, total, nil
 }
 
 // GetByID mengambil member berdasarkan ID
