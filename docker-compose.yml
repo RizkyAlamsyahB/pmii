@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: pmii-api
-    restart: on-failure:3  # Retry max 3x, lalu stop
+    restart: on-failure:3
     ports:
       - "8080:8080"
     env_file:
@@ -39,6 +39,23 @@ services:
     networks:
       - pmii-network
 
+  # pgAdmin auto connect to PostgreSQL
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pmii-pgadmin
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - pmii-network
 networks:
   pmii-network:
     driver: bridge

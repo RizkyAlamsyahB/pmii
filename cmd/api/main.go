@@ -6,6 +6,7 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
 	"github.com/garuda-labs-1/pmii-be/internal/routes"
 	"github.com/garuda-labs-1/pmii-be/internal/service"
+	"github.com/garuda-labs-1/pmii-be/pkg/cloudinary"
 	"github.com/garuda-labs-1/pmii-be/pkg/database"
 	"github.com/garuda-labs-1/pmii-be/pkg/logger"
 	"github.com/garuda-labs-1/pmii-be/pkg/utils"
@@ -57,28 +58,41 @@ func main() {
 		logger.Error.Fatalf("Failed to seed default users: %v", err)
 	}
 
-	// 5. Initialize Repositories (Data Layer)
-	userRepo := repository.NewUserRepository(db)
+	// 5. Initialize Cloudinary Service
+	cloudinaryService, err := cloudinary.NewService(cfg.Cloudinary.URL)
+	if err != nil {
+		logger.Error.Fatalf("Failed to initialize Cloudinary: %v", err)
+	}
+	logger.Info.Println("✅ Cloudinary service initialized")
 
-	// 6. Initialize Services (Business Logic Layer)
+	// 6. Initialize Repositories (Data Layer)
+	userRepo := repository.NewUserRepository(db)
+	testimonialRepo := repository.NewTestimonialRepository(db)
+	memberRepo := repository.NewMemberRepository(db)
+
+	// 7. Initialize Services (Business Logic Layer)
 	authService := service.NewAuthService(userRepo)
 	userService := service.NewUserService(userRepo)
+	testimonialService := service.NewTestimonialService(testimonialRepo, cloudinaryService)
+	memberService := service.NewMemberService(memberRepo, cloudinaryService)
 
-	// 7. Initialize Handlers (Transport Layer)
+	// 8. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)
 	adminHandler := handlers.NewAdminHandler(userService)
 	userHandler := handlers.NewUserHandler(userService)
+	testimonialHandler := handlers.NewTestimonialHandler(testimonialService)
+	memberHandler := handlers.NewMemberHandler(memberService)
 
-	// 8. Setup Gin Router
+	// 9. Setup Gin Router
 	if cfg.Server.Environment == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.Default()
 
-	// 9. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	// 10. Setup Routes (dari internal/routes)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
 
-	// 10. Start Server
+	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port
 	logger.Info.Printf("🌐 Server running on http://localhost%s", serverAddr)
 	if err := r.Run(serverAddr); err != nil {

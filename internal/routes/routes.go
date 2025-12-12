@@ -15,6 +15,8 @@ func SetupRoutes(
 	authHandler *handlers.AuthHandler,
 	adminHandler *handlers.AdminHandler,
 	userHandler *handlers.UserHandler,
+	testimonialHandler *handlers.TestimonialHandler,
+	memberHandler *handlers.MemberHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -64,6 +66,20 @@ func SetupRoutes(
 
 			// GET /v1/admin/users - List all users (Admin only)
 			adminRoutes.GET("/users", adminHandler.GetAllUsers)
+
+			// Testimonial Routes - Admin Only
+			adminRoutes.POST("/testimonials", testimonialHandler.Create)       // POST /v1/admin/testimonials
+			adminRoutes.GET("/testimonials", testimonialHandler.GetAll)        // GET /v1/admin/testimonials
+			adminRoutes.GET("/testimonials/:id", testimonialHandler.GetByID)   // GET /v1/admin/testimonials/:id
+			adminRoutes.PUT("/testimonials/:id", testimonialHandler.Update)    // PUT /v1/admin/testimonials/:id
+			adminRoutes.DELETE("/testimonials/:id", testimonialHandler.Delete) // DELETE /v1/admin/testimonials/:id
+
+			// Member Routes - Admin Only
+			adminRoutes.POST("/members", memberHandler.Create)       // POST /v1/admin/members
+			adminRoutes.GET("/members", memberHandler.GetAll)        // GET /v1/admin/members
+			adminRoutes.GET("/members/:id", memberHandler.GetByID)   // GET /v1/admin/members/:id
+			adminRoutes.PUT("/members/:id", memberHandler.Update)    // PUT /v1/admin/members/:id
+			adminRoutes.DELETE("/members/:id", memberHandler.Delete) // DELETE /v1/admin/members/:id
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
