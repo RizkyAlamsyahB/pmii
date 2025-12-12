@@ -183,3 +183,27 @@ func (h *UserHandler) UpdateUserByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "User berhasil diupdate", response))
 }
+
+// DeleteUserByID handles DELETE /users/:id (Admin Only)
+// Menghapus user berdasarkan ID (soft delete)
+func (h *UserHandler) DeleteUserByID(c *gin.Context) {
+	// Parse URL param :id
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "ID tidak valid"))
+		return
+	}
+
+	// Delete user via service
+	if err := h.userService.DeleteUser(userID); err != nil {
+		// Handle specific errors
+		if err.Error() == "user tidak ditemukan" {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "User tidak ditemukan"))
+			return
+		}
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menghapus user"))
+		return
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(200, "User berhasil dihapus", nil))
+}

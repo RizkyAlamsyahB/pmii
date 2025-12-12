@@ -16,6 +16,7 @@ type UserService interface {
 	GetUserByID(id int) (*domain.User, error)
 	CreateUser(req *requests.CreateUserRequest) (*domain.User, error)
 	UpdateUser(id int, req *requests.UpdateUserRequest) (*domain.User, error)
+	DeleteUser(id int) error
 }
 
 type userService struct {
@@ -138,4 +139,20 @@ func (s *userService) UpdateUser(id int, req *requests.UpdateUserRequest) (*doma
 	}
 
 	return user, nil
+}
+
+// DeleteUser menghapus user berdasarkan ID (soft delete)
+func (s *userService) DeleteUser(id int) error {
+	// Cek apakah user ada
+	_, err := s.userRepo.FindByID(id)
+	if err != nil {
+		return errors.New("user tidak ditemukan")
+	}
+
+	// Hapus user (soft delete via GORM)
+	if err := s.userRepo.Delete(id); err != nil {
+		return errors.New("gagal menghapus user")
+	}
+
+	return nil
 }

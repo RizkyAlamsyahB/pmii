@@ -15,6 +15,7 @@ type MockUserRepositoryForUserService struct {
 	FindByEmailFunc func(email string) (*domain.User, error)
 	CreateFunc      func(user *domain.User) error
 	UpdateFunc      func(user *domain.User) error
+	DeleteFunc      func(id int) error
 }
 
 func (m *MockUserRepositoryForUserService) FindAll() ([]domain.User, error) {
@@ -53,8 +54,13 @@ func (m *MockUserRepositoryForUserService) Update(user *domain.User) error {
 	return nil
 }
 
-// Stub methods (interface requirement)
-func (m *MockUserRepositoryForUserService) Delete(id int) error { return nil }
+// Delete method with mock function support
+func (m *MockUserRepositoryForUserService) Delete(id int) error {
+	if m.DeleteFunc != nil {
+		return m.DeleteFunc(id)
+	}
+	return nil
+}
 
 // ============================================================
 // Test Cases untuk GetAllUsers
@@ -890,5 +896,95 @@ func TestUpdateUser_ClearPhotoURI(t *testing.T) {
 	}
 	if user.PhotoURI != nil {
 		t.Errorf("Expected photo URI to be nil, got %v", user.PhotoURI)
+	}
+}
+
+// ============================================================
+// Test Cases untuk DeleteUser
+// ============================================================
+
+// TestDeleteUser_Success menguji penghapusan user berhasil
+func TestDeleteUser_Success(t *testing.T) {
+	existingUser := &domain.User{
+		ID:       1,
+		FullName: "Test User",
+		Email:    "test@example.com",
+		Role:     2,
+		IsActive: true,
+	}
+
+	mockRepo := &MockUserRepositoryForUserService{
+		FindByIDFunc: func(id int) (*domain.User, error) {
+			if id == 1 {
+				return existingUser, nil
+			}
+			return nil, errors.New("not found")
+		},
+		// Delete stub method will return nil by default (line 53)
+	}
+
+	userService := NewUserService(mockRepo)
+	err := userService.DeleteUser(1)
+
+	// Validasi
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+}
+
+// TestDeleteUser_NotFound menguji penghapusan user yang tidak ditemukan
+func TestDeleteUser_NotFound(t *testing.T) {
+	mockRepo := &MockUserRepositoryForUserService{
+		FindByIDFunc: func(id int) (*domain.User, error) {
+			return nil, errors.New("record not found")
+		},
+	}
+
+	userService := NewUserService(mockRepo)
+	err := userService.DeleteUser(999)
+
+	// Validasi
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if err.Error() != "user tidak ditemukan" {
+		t.Errorf("Expected error message 'user tidak ditemukan', got '%s'", err.Error())
+	}
+}
+
+// TestDeleteUser_RepositoryError menguji ketika repository gagal delete
+func TestDeleteUser_RepositoryError(t *testing.T) {
+	existingUser := &domain.User{
+		ID:       1,
+		FullName: "Test User",
+		Email:    "test@example.com",
+		Role:     2,
+		IsActive: true,
+	}
+
+	var deleteCalled bool
+
+	mockRepo := &MockUserRepositoryForUserService{
+		FindByIDFunc: func(id int) (*domain.User, error) {
+			return existingUser, nil
+		},
+		DeleteFunc: func(id int) error {
+			deleteCalled = true
+			return errors.New("database connection failed")
+		},
+	}
+
+	userService := NewUserService(mockRepo)
+	err := userService.DeleteUser(1)
+
+	// Validasi
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if err.Error() != "gagal menghapus user" {
+		t.Errorf("Expected error message 'gagal menghapus user', got '%s'", err.Error())
+	}
+	if !deleteCalled {
+		t.Error("Expected Delete method to be called")
 	}
 }

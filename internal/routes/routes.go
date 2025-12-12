@@ -97,6 +97,9 @@ func SetupRoutes(
 
 			// PUT /v1/users/:id - Update user by ID (Admin only)
 			userRoutes.PUT("/:id", middleware.RequireRole("1"), userHandler.UpdateUserByID)
+
+			// DELETE /v1/users/:id - Delete user by ID (Admin only)
+			userRoutes.DELETE("/:id", middleware.RequireRole("1"), userHandler.DeleteUserByID)
 		}
 	}
 }
