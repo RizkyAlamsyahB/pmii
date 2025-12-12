@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 // 1. GET ALL POSTS (Dengan Pagination & Search)
 func GetPosts(c *gin.Context) {
+	// Ambil Query Param
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	search := c.Query("search")
@@ -28,6 +30,7 @@ func GetPosts(c *gin.Context) {
 	var posts []domain.Post
 	var total int64
 
+	// Preload Relasi
 	query := config.DB.Model(&domain.Post{}).Preload("Tags").Preload("Category")
 
 	if search != "" {
@@ -35,8 +38,10 @@ func GetPosts(c *gin.Context) {
 		query = query.Where("title ILIKE ? OR content ILIKE ?", searchKeyword, searchKeyword)
 	}
 
+	// Hitung Total Data
 	query.Count(&total)
 
+	// Ambil Data
 	result := query.Limit(limit).Offset(offset).Order("published_at DESC").Find(&posts)
 
 	if result.Error != nil {
@@ -46,7 +51,16 @@ func GetPosts(c *gin.Context) {
 
 	data := responses.FromDomainListToPostResponse(posts)
 
-	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(200, "List of posts", page, limit, total, data))
+	// --- PERBAIKAN UTAMA DISINI ---
+	// 1. Hitung Last Page secara manual (karena base_response membutuhkannya)
+	lastPage := int(math.Ceil(float64(total) / float64(limit)))
+	if lastPage < 1 {
+		lastPage = 1
+	}
+
+	// 2. Panggil fungsi dengan urutan argumen yang BENAR sesuai base_response.go:
+	// func SuccessResponseWithPagination(code int, message string, data interface{}, page, limit int, total int64, lastPage int)
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(200, "List of posts", data, page, limit, total, lastPage))
 }
 
 // 2. CREATE POST
@@ -61,19 +75,19 @@ func CreatePost(c *gin.Context) {
 	}
 
 	imageName := ""
-
 	fileHeader, err := c.FormFile("image")
 	if err == nil {
 		file, _ := fileHeader.Open()
 		defer file.Close()
 		filename := "post-" + time.Now().Format("20060102-150405")
 
-		_, errUpload := utils.UploadToCloudinary(file, filename)
+		// Pastikan utils mengembalikan URL string
+		url, errUpload := utils.UploadToCloudinary(file, filename)
 		if errUpload != nil {
 			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal upload gambar"))
 			return
 		}
-		imageName = filename + ".png"
+		imageName = url // Simpan URL lengkap
 	}
 
 	var excerptPtr *string = nil
@@ -97,6 +111,7 @@ func CreatePost(c *gin.Context) {
 	publishedTime := time.Now()
 	publishedAtPtr := &publishedTime
 
+	// Logic Tags
 	var tagEntities []domain.Tag
 	tagsInput := c.PostForm("tags")
 	if tagsInput != "" {
@@ -133,6 +148,9 @@ func CreatePost(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menyimpan berita"))
 		return
 	}
+
+	// Reload data agar ID tags & category muncul di response
+	config.DB.Preload("Category").Preload("Tags").First(&post, post.ID)
 
 	responseDTO := responses.FromDomainToPostResponse(post)
 
@@ -181,6 +199,7 @@ func UpdatePost(c *gin.Context) {
 	id := c.Param("id")
 	var post domain.Post
 
+	// Preload Tags eksisting agar bisa di-replace
 	if err := config.DB.Preload("Tags").Where("id = ?", id).First(&post).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Berita tidak ditemukan"))
 		return
@@ -199,8 +218,6 @@ func UpdatePost(c *gin.Context) {
 		}
 		if len(excerpt) > 0 {
 			post.Excerpt = &excerpt
-		} else {
-			post.Excerpt = nil
 		}
 	}
 
@@ -210,46 +227,42 @@ func UpdatePost(c *gin.Context) {
 		}
 	}
 
+	// Logic Update Tags
 	tagString := c.PostForm("tags")
-	if tagString != "" {
+	// Jika key "tags" dikirim (meskipun string kosong), kita proses
+	if c.Request.PostForm.Has("tags") {
 		var tagEntities []domain.Tag
-		tagNameList := strings.Split(tagString, ",")
+		if tagString != "" {
+			tagNameList := strings.Split(tagString, ",")
+			for _, tagName := range tagNameList {
+				tagName = strings.TrimSpace(tagName)
+				if tagName == "" {
+					continue
+				}
 
-		for _, tagName := range tagNameList {
-			tagName = strings.TrimSpace(tagName)
-			if tagName == "" {
-				continue
-			}
-
-			tagSlug := strings.ToLower(strings.ReplaceAll(tagName, " ", "-"))
-
-			var tag domain.Tag
-			err := config.DB.Where(domain.Tag{Slug: tagSlug}).Attrs(domain.Tag{Name: tagName}).FirstOrCreate(&tag).Error
-			if err == nil {
-				tagEntities = append(tagEntities, tag)
+				tagSlug := strings.ToLower(strings.ReplaceAll(tagName, " ", "-"))
+				var tag domain.Tag
+				err := config.DB.Where(domain.Tag{Slug: tagSlug}).Attrs(domain.Tag{Name: tagName}).FirstOrCreate(&tag).Error
+				if err == nil {
+					tagEntities = append(tagEntities, tag)
+				}
 			}
 		}
-
+		// Replace tags lama dengan yang baru (atau hapus semua jika kosong)
 		config.DB.Model(&post).Association("Tags").Replace(tagEntities)
-	} else if c.PostForm("tags") != "" {
-		config.DB.Model(&post).Association("Tags").Clear()
 	}
 
-	// --- LOGIKA GAMBAR UPDATE: MENYIMPAN HANYA NAMA FILE ---
+	// Update Gambar
 	fileHeader, err := c.FormFile("image")
 	if err == nil {
 		file, _ := fileHeader.Open()
 		defer file.Close()
 		filename := "post-update-" + time.Now().Format("20060102-150405")
 
-		// Upload dan dapatkan URL (hanya untuk validasi)
-		_, _ = utils.UploadToCloudinary(file, filename)
-
-		// Simpan hanya nama file/key Cloudinary
-		newImageName := filename + ".png"
-		post.FeaturedImage = &newImageName
-	} else if val, ok := c.GetPostForm("image"); !ok && val == "" {
-		post.FeaturedImage = nil
+		url, _ := utils.UploadToCloudinary(file, filename)
+		if url != "" {
+			post.FeaturedImage = &url
+		}
 	}
 
 	config.DB.Save(&post)
