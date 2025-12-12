@@ -28,7 +28,7 @@ func GetPosts(c *gin.Context) {
 	var posts []domain.Post
 	var total int64
 
-	query := config.DB.Model(&domain.Post{})
+	query := config.DB.Model(&domain.Post{}).Preload("Tags").Preload("Category")
 
 	if search != "" {
 		searchKeyword := "%" + search + "%"
