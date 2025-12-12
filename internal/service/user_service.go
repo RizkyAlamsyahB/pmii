@@ -15,6 +15,7 @@ type UserService interface {
 	GetAllUsers() ([]domain.User, error)
 	GetUserByID(id int) (*domain.User, error)
 	CreateUser(req *requests.CreateUserRequest) (*domain.User, error)
+	UpdateUser(id int, req *requests.UpdateUserRequest) (*domain.User, error)
 }
 
 type userService struct {
@@ -83,6 +84,57 @@ func (s *userService) CreateUser(req *requests.CreateUserRequest) (*domain.User,
 	// Simpan ke database
 	if err := s.userRepo.Create(user); err != nil {
 		return nil, errors.New("gagal membuat user")
+	}
+
+	return user, nil
+}
+
+// UpdateUser mengupdate data user berdasarkan ID (Admin only)
+func (s *userService) UpdateUser(id int, req *requests.UpdateUserRequest) (*domain.User, error) {
+	// Cek apakah user ada
+	user, err := s.userRepo.FindByID(id)
+	if err != nil {
+		return nil, errors.New("user tidak ditemukan")
+	}
+
+	// Cek apakah email sudah dipakai user lain
+	if req.Email != user.Email {
+		existingUser, _ := s.userRepo.FindByEmail(req.Email)
+		if existingUser != nil && existingUser.ID != id {
+			return nil, errors.New("email sudah digunakan user lain")
+		}
+	}
+
+	// Jika password diisi, validasi dan hash
+	if req.Password != "" {
+		hasLetter := regexp.MustCompile(`[a-zA-Z]`).MatchString(req.Password)
+		hasNumber := regexp.MustCompile(`[0-9]`).MatchString(req.Password)
+		if !hasLetter || !hasNumber {
+			return nil, errors.New("password harus kombinasi huruf dan angka")
+		}
+
+		hashedPassword, err := utils.HashPassword(req.Password)
+		if err != nil {
+			return nil, errors.New("gagal memproses password")
+		}
+		user.PasswordHash = hashedPassword
+	}
+
+	// Update fields
+	user.FullName = req.FullName
+	user.Email = req.Email
+	user.Role = req.Role
+	user.IsActive = req.IsActive
+
+	if req.PhotoURI != "" {
+		user.PhotoURI = &req.PhotoURI
+	} else {
+		user.PhotoURI = nil
+	}
+
+	// Simpan ke database
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, errors.New("gagal mengupdate user")
 	}
 
 	return user, nil

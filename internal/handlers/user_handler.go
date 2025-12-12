@@ -136,3 +136,50 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, responses.SuccessResponse(201, "User berhasil dibuat", response))
 }
+
+// UpdateUserByID handles PUT /users/:id (Admin Only)
+// Mengupdate data user berdasarkan ID
+func (h *UserHandler) UpdateUserByID(c *gin.Context) {
+	// Parse URL param :id
+	userID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "ID tidak valid"))
+		return
+	}
+
+	var req requests.UpdateUserRequest
+
+	// Bind dan validasi request body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(err.Error()))
+		return
+	}
+
+	// Update user via service
+	user, err := h.userService.UpdateUser(userID, &req)
+	if err != nil {
+		// Handle specific errors
+		switch err.Error() {
+		case "user tidak ditemukan":
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "User tidak ditemukan"))
+		case "email sudah digunakan user lain":
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Email sudah digunakan user lain"))
+		case "password harus kombinasi huruf dan angka":
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Password harus kombinasi huruf dan angka"))
+		default:
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengupdate user"))
+		}
+		return
+	}
+
+	// Convert domain.User ke response DTO
+	response := responses.UserListItem{
+		ID:       user.ID,
+		FullName: user.FullName,
+		Email:    user.Email,
+		Role:     getRoleName(user.Role),
+		Status:   getStatusName(user.IsActive),
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(200, "User berhasil diupdate", response))
+}

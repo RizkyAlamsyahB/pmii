@@ -94,6 +94,9 @@ func SetupRoutes(
 
 			// GET /v1/users/:id - Get user by ID (admin: any user, non-admin: own data only)
 			userRoutes.GET("/:id", middleware.RequireOwnerOrAdmin("id"), userHandler.GetUserByID)
+
+			// PUT /v1/users/:id - Update user by ID (Admin only)
+			userRoutes.PUT("/:id", middleware.RequireRole("1"), userHandler.UpdateUserByID)
 		}
 	}
 }
