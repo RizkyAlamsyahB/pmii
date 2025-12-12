@@ -49,7 +49,7 @@ func SuccessResponse(code int, message string, data interface{}) Response {
 }
 
 // SuccessPaginationResponse membuat response sukses dengan metadata pagination
-func SuccessPaginationResponse(code int, message string, page int, limit int, total int64, data interface{}) PaginationResponse {
+func SuccessResponseWithPagination(code int, message string, page int, limit int, total int64, data interface{}) PaginationResponse {
 	// Hitung last page (Total data dibagi limit, dibulatkan ke atas)
 	lastPage := int(math.Ceil(float64(total) / float64(limit)))
 

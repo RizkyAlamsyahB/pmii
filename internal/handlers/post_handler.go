@@ -46,7 +46,7 @@ func GetPosts(c *gin.Context) {
 
 	data := responses.FromDomainListToPostResponse(posts)
 
-	c.JSON(http.StatusOK, responses.SuccessPaginationResponse(200, "List of posts", page, limit, total, data))
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(200, "List of posts", page, limit, total, data))
 }
 
 // 2. CREATE POST
