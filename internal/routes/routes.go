@@ -89,6 +89,9 @@ func SetupRoutes(
 			// GET /v1/users - List all users (Admin only)
 			userRoutes.GET("", middleware.RequireRole("1"), userHandler.GetAllUsers)
 
+			// POST /v1/users - Create new user (Admin only)
+			userRoutes.POST("", middleware.RequireRole("1"), userHandler.CreateUser)
+
 			// GET /v1/users/:id - Get user by ID (admin: any user, non-admin: own data only)
 			userRoutes.GET("/:id", middleware.RequireOwnerOrAdmin("id"), userHandler.GetUserByID)
 		}

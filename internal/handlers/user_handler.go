@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/service"
 	"github.com/gin-gonic/gin"
@@ -96,4 +97,42 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Profil berhasil diambil", profile))
+}
+
+// CreateUser handles POST /users (Admin Only)
+// Membuat user baru di sistem
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	var req requests.CreateUserRequest
+
+	// Bind dan validasi request body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(err.Error()))
+		return
+	}
+
+	// Create user via service
+	user, err := h.userService.CreateUser(&req)
+	if err != nil {
+		// Handle specific errors
+		switch err.Error() {
+		case "email sudah terdaftar":
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Email sudah terdaftar"))
+		case "password harus kombinasi huruf dan angka":
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Password harus kombinasi huruf dan angka"))
+		default:
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal membuat user"))
+		}
+		return
+	}
+
+	// Convert domain.User ke response DTO
+	response := responses.UserListItem{
+		ID:       user.ID,
+		FullName: user.FullName,
+		Email:    user.Email,
+		Role:     getRoleName(user.Role),
+		Status:   getStatusName(user.IsActive),
+	}
+
+	c.JSON(http.StatusCreated, responses.SuccessResponse(201, "User berhasil dibuat", response))
 }
