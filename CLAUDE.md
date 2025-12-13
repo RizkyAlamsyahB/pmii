@@ -12,11 +12,14 @@ PMII Backend API - A Go REST API built with Gin framework using Clean Architectu
 # Run the application (requires .env file and running PostgreSQL)
 go run cmd/api/main.go
 
-# Run tests
+# Run all tests
 go test ./...
 
-# Run specific test file
-go test ./internal/service/auth_service_test.go
+# Run a specific test function
+go test -run TestGetAllUsers_Success ./internal/service/
+
+# Run tests with verbose output
+go test -v ./internal/service/...
 
 # Build the binary
 go build -o pmii-backend cmd/api/main.go
@@ -45,7 +48,7 @@ config/                  - Configuration loading via Viper (.env)
 internal/
 ├── domain/             - Domain models (User, Post, Category, etc.) - GORM entities
 ├── dto/                - Request/Response DTOs
-│   ├── requests/       - Input validation structs
+│   ├── requests/       - Input validation structs (uses gin binding tags)
 │   └── responses/      - API response formatting
 ├── handlers/           - HTTP handlers (transport layer)
 ├── middleware/         - Auth, CORS, RBAC, rate limiting, recovery
@@ -63,6 +66,15 @@ migrations/             - SQL migration files (golang-migrate format)
 
 **Dependency Flow**: main.go → repository → service → handler → routes
 
+**Adding a New Entity** (e.g., "Widget"):
+1. Create domain model: `internal/domain/widget.go`
+2. Create DTOs: `internal/dto/requests/widget_request.go`, `internal/dto/responses/widget_response.go`
+3. Create repository interface + implementation: `internal/repository/widget_repository.go`
+4. Create service: `internal/service/widget_service.go`
+5. Create handler: `internal/handlers/widget_handler.go`
+6. Wire up in `cmd/api/main.go` (instantiate repo → service → handler)
+7. Add routes in `internal/routes/routes.go`
+
 **Authentication**: JWT-based with token blacklisting for logout. JWT claims contain `user_id` and `user_role`.
 
 **RBAC**: Role-based access control via middleware:
@@ -72,19 +84,59 @@ migrations/             - SQL migration files (golang-migrate format)
 
 **User Roles**: Role 1 = Admin, Role 2 = Author
 
+**Request Validation**: Uses Gin binding tags in request DTOs. Example:
+```go
+type CreateUserRequest struct {
+    FullName string `json:"full_name" binding:"required,min=2,max=100"`
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required,min=8"`
+}
+```
+
 **Migrations**: Auto-run on startup via `database.RunMigrations()`. Files in `migrations/` folder follow `NNNNNN_description.{up,down}.sql` naming.
 
 **Seeding**: Default users seeded automatically on startup via `database.SeedDefaultUsers()`.
+
+## Testing Patterns
+
+Tests use manual mock structs with function fields. Each repository method has a corresponding `*Func` field:
+
+```go
+type MockUserRepository struct {
+    FindAllFunc  func() ([]domain.User, error)
+    FindByIDFunc func(id int) (*domain.User, error)
+    // ...
+}
+
+func (m *MockUserRepository) FindAll() ([]domain.User, error) {
+    if m.FindAllFunc != nil {
+        return m.FindAllFunc()
+    }
+    return nil, errors.New("mock not configured")
+}
+```
+
+Test naming convention: `Test<Function>_<Scenario>` (e.g., `TestCreateUser_EmailAlreadyExists`)
 
 ## API Structure
 
 Base URL: `/v1`
 
-- `POST /v1/auth/login` - Login (rate limited)
+**Auth Routes:**
+- `POST /v1/auth/login` - Login (rate limited: 60 req/min)
 - `POST /v1/auth/logout` - Logout (requires auth)
-- `GET /v1/admin/dashboard` - Admin only
-- `GET /v1/users` - List users (admin only)
-- `GET /v1/users/:id` - Get user (owner or admin)
+
+**Admin Routes** (`/v1/admin/*` - requires admin role):
+- `GET /v1/admin/dashboard` - Admin dashboard
+- CRUD for testimonials: `/v1/admin/testimonials`
+- CRUD for members: `/v1/admin/members`
+
+**User Routes** (`/v1/users` - requires auth):
+- `GET /v1/users` - List all (admin only)
+- `POST /v1/users` - Create (admin only)
+- `GET /v1/users/:id` - Get by ID (owner or admin)
+- `PUT /v1/users/:id` - Update (admin only)
+- `DELETE /v1/users/:id` - Delete (admin only)
 
 ## Database
 

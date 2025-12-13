@@ -104,14 +104,25 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req requests.CreateUserRequest
 
-	// Bind dan validasi request body
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// Bind dan validasi request body (support JSON dan form-data)
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(err.Error()))
 		return
 	}
 
+	// Get and validate photo file
+	photoFile, err := c.FormFile("photo")
+	if err != nil && err != http.ErrMissingFile {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(http.StatusBadRequest, "Format foto tidak valid"))
+		return
+	}
+	if photoFile != nil && photoFile.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(http.StatusBadRequest, "Ukuran foto maksimal 5MB"))
+		return
+	}
+
 	// Create user via service
-	user, err := h.userService.CreateUser(&req)
+	user, err := h.userService.CreateUser(c.Request.Context(), &req, photoFile)
 	if err != nil {
 		// Handle specific errors
 		switch err.Error() {
@@ -119,6 +130,8 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Email sudah terdaftar"))
 		case "password harus kombinasi huruf dan angka":
 			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Password harus kombinasi huruf dan angka"))
+		case "gagal mengupload foto":
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengupload foto"))
 		default:
 			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal membuat user"))
 		}
@@ -149,14 +162,25 @@ func (h *UserHandler) UpdateUserByID(c *gin.Context) {
 
 	var req requests.UpdateUserRequest
 
-	// Bind dan validasi request body
-	if err := c.ShouldBindJSON(&req); err != nil {
+	// Bind dan validasi request body (support JSON dan form-data)
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(err.Error()))
 		return
 	}
 
+	// Get and validate photo file
+	photoFile, err := c.FormFile("photo")
+	if err != nil && err != http.ErrMissingFile {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(http.StatusBadRequest, "Format foto tidak valid"))
+		return
+	}
+	if photoFile != nil && photoFile.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(http.StatusBadRequest, "Ukuran foto maksimal 5MB"))
+		return
+	}
+
 	// Update user via service
-	user, err := h.userService.UpdateUser(userID, &req)
+	user, err := h.userService.UpdateUser(c.Request.Context(), userID, &req, photoFile)
 	if err != nil {
 		// Handle specific errors
 		switch err.Error() {
@@ -166,6 +190,8 @@ func (h *UserHandler) UpdateUserByID(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Email sudah digunakan user lain"))
 		case "password harus kombinasi huruf dan angka":
 			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Password harus kombinasi huruf dan angka"))
+		case "gagal mengupload foto":
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengupload foto"))
 		default:
 			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengupdate user"))
 		}

@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"mime/multipart"
 	"testing"
 
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
@@ -62,6 +64,34 @@ func (m *MockUserRepositoryForUserService) Delete(id int) error {
 	return nil
 }
 
+// MockCloudinaryService adalah mock untuk CloudinaryService (untuk testing UserService)
+type MockCloudinaryServiceForUserService struct {
+	UploadImageFunc  func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	GetImageURLFunc  func(folder string, fileName string) string
+	DeleteImageFunc  func(ctx context.Context, folder string, fileName string) error
+}
+
+func (m *MockCloudinaryServiceForUserService) UploadImage(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+	if m.UploadImageFunc != nil {
+		return m.UploadImageFunc(ctx, folder, file)
+	}
+	return "uploaded-file.jpg", nil
+}
+
+func (m *MockCloudinaryServiceForUserService) GetImageURL(folder string, fileName string) string {
+	if m.GetImageURLFunc != nil {
+		return m.GetImageURLFunc(folder, fileName)
+	}
+	return "https://res.cloudinary.com/test/" + folder + "/" + fileName
+}
+
+func (m *MockCloudinaryServiceForUserService) DeleteImage(ctx context.Context, folder string, fileName string) error {
+	if m.DeleteImageFunc != nil {
+		return m.DeleteImageFunc(ctx, folder, fileName)
+	}
+	return nil
+}
+
 // ============================================================
 // Test Cases untuk GetAllUsers
 // ============================================================
@@ -91,8 +121,9 @@ func TestGetAllUsers_Success(t *testing.T) {
 			return mockUsers, nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	users, err := userService.GetAllUsers()
 
 	// Validasi
@@ -120,8 +151,9 @@ func TestGetAllUsers_EmptyList(t *testing.T) {
 			return []domain.User{}, nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	users, err := userService.GetAllUsers()
 
 	// Validasi
@@ -143,8 +175,9 @@ func TestGetAllUsers_RepositoryError(t *testing.T) {
 			return nil, errors.New("database connection failed")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	users, err := userService.GetAllUsers()
 
 	// Validasi
@@ -182,8 +215,9 @@ func TestGetUserByID_Success(t *testing.T) {
 			return nil, errors.New("not found")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	user, err := userService.GetUserByID(1)
 
 	// Validasi
@@ -211,8 +245,9 @@ func TestGetUserByID_NotFound(t *testing.T) {
 			return nil, errors.New("record not found")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	user, err := userService.GetUserByID(999)
 
 	// Validasi
@@ -234,8 +269,9 @@ func TestGetUserByID_RepositoryError(t *testing.T) {
 			return nil, errors.New("database connection failed")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	user, err := userService.GetUserByID(1)
 
 	// Validasi
@@ -254,7 +290,7 @@ func TestGetUserByID_RepositoryError(t *testing.T) {
 // Test Cases untuk CreateUser
 // ============================================================
 
-// TestCreateUser_Success menguji pembuatan user berhasil
+// TestCreateUser_Success menguji pembuatan user berhasil tanpa foto
 func TestCreateUser_Success(t *testing.T) {
 	mockRepo := &MockUserRepositoryForUserService{
 		FindByEmailFunc: func(email string) (*domain.User, error) {
@@ -265,16 +301,17 @@ func TestCreateUser_Success(t *testing.T) {
 			return nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.CreateUserRequest{
 		FullName: "Test User",
 		Email:    "test@example.com",
 		Password: "password123", // Kombinasi huruf dan angka
-		PhotoURI: "",
 	}
 
-	user, err := userService.CreateUser(req)
+	ctx := context.Background()
+	user, err := userService.CreateUser(ctx, req, nil) // tanpa foto
 
 	// Validasi
 	if err != nil {
@@ -300,15 +337,17 @@ func TestCreateUser_Success(t *testing.T) {
 // TestCreateUser_PasswordOnlyLetters menguji password hanya huruf (tanpa angka)
 func TestCreateUser_PasswordOnlyLetters(t *testing.T) {
 	mockRepo := &MockUserRepositoryForUserService{}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.CreateUserRequest{
 		FullName: "Test User",
 		Email:    "test@example.com",
 		Password: "passwordonly", // Hanya huruf, tanpa angka
 	}
 
-	user, err := userService.CreateUser(req)
+	ctx := context.Background()
+	user, err := userService.CreateUser(ctx, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -325,15 +364,17 @@ func TestCreateUser_PasswordOnlyLetters(t *testing.T) {
 // TestCreateUser_PasswordOnlyNumbers menguji password hanya angka (tanpa huruf)
 func TestCreateUser_PasswordOnlyNumbers(t *testing.T) {
 	mockRepo := &MockUserRepositoryForUserService{}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.CreateUserRequest{
 		FullName: "Test User",
 		Email:    "test@example.com",
 		Password: "12345678", // Hanya angka, tanpa huruf
 	}
 
-	user, err := userService.CreateUser(req)
+	ctx := context.Background()
+	user, err := userService.CreateUser(ctx, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -360,15 +401,17 @@ func TestCreateUser_EmailAlreadyExists(t *testing.T) {
 			return existingUser, nil // Email sudah ada
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.CreateUserRequest{
 		FullName: "Test User",
 		Email:    "existing@example.com",
 		Password: "password123",
 	}
 
-	user, err := userService.CreateUser(req)
+	ctx := context.Background()
+	user, err := userService.CreateUser(ctx, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -392,15 +435,17 @@ func TestCreateUser_RepositoryError(t *testing.T) {
 			return errors.New("database connection failed")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.CreateUserRequest{
 		FullName: "Test User",
 		Email:    "test@example.com",
 		Password: "password123",
 	}
 
-	user, err := userService.CreateUser(req)
+	ctx := context.Background()
+	user, err := userService.CreateUser(ctx, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -414,8 +459,10 @@ func TestCreateUser_RepositoryError(t *testing.T) {
 	}
 }
 
-// TestCreateUser_WithPhotoURI menguji pembuatan user dengan photo URI
-func TestCreateUser_WithPhotoURI(t *testing.T) {
+// TestCreateUser_WithPhotoFile menguji pembuatan user dengan photo file (cloudinary upload)
+func TestCreateUser_WithPhotoFile(t *testing.T) {
+	var uploadCalled bool
+
 	mockRepo := &MockUserRepositoryForUserService{
 		FindByEmailFunc: func(email string) (*domain.User, error) {
 			return nil, errors.New("not found")
@@ -425,16 +472,27 @@ func TestCreateUser_WithPhotoURI(t *testing.T) {
 			return nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{
+		UploadImageFunc: func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+			uploadCalled = true
+			return "uploaded-photo.jpg", nil
+		},
+		GetImageURLFunc: func(folder string, fileName string) string {
+			return "https://res.cloudinary.com/test/" + folder + "/" + fileName
+		},
+	}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.CreateUserRequest{
 		FullName: "Test User",
 		Email:    "test@example.com",
 		Password: "password123",
-		PhotoURI: "https://example.com/photo.jpg",
 	}
 
-	user, err := userService.CreateUser(req)
+	ctx := context.Background()
+	// Simulasikan file header (dalam real test perlu mock file header)
+	photoFile := &multipart.FileHeader{Filename: "test.jpg"}
+	user, err := userService.CreateUser(ctx, req, photoFile)
 
 	// Validasi
 	if err != nil {
@@ -443,11 +501,51 @@ func TestCreateUser_WithPhotoURI(t *testing.T) {
 	if user == nil {
 		t.Error("Expected user, got nil")
 	}
+	if !uploadCalled {
+		t.Error("Expected cloudinary upload to be called")
+	}
 	if user.PhotoURI == nil {
 		t.Error("Expected photo URI, got nil")
 	}
-	if *user.PhotoURI != "https://example.com/photo.jpg" {
-		t.Errorf("Expected photo URI 'https://example.com/photo.jpg', got '%s'", *user.PhotoURI)
+	expectedURL := "https://res.cloudinary.com/test/users/avatars/uploaded-photo.jpg"
+	if *user.PhotoURI != expectedURL {
+		t.Errorf("Expected photo URI '%s', got '%s'", expectedURL, *user.PhotoURI)
+	}
+}
+
+// TestCreateUser_UploadPhotoError menguji ketika upload foto gagal
+func TestCreateUser_UploadPhotoError(t *testing.T) {
+	mockRepo := &MockUserRepositoryForUserService{
+		FindByEmailFunc: func(email string) (*domain.User, error) {
+			return nil, errors.New("not found")
+		},
+	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{
+		UploadImageFunc: func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+			return "", errors.New("cloudinary error")
+		},
+	}
+
+	userService := NewUserService(mockRepo, mockCloudinary)
+	req := &requests.CreateUserRequest{
+		FullName: "Test User",
+		Email:    "test@example.com",
+		Password: "password123",
+	}
+
+	ctx := context.Background()
+	photoFile := &multipart.FileHeader{Filename: "test.jpg"}
+	user, err := userService.CreateUser(ctx, req, photoFile)
+
+	// Validasi
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if err.Error() != "gagal mengupload foto" {
+		t.Errorf("Expected error message 'gagal mengupload foto', got '%s'", err.Error())
+	}
+	if user != nil {
+		t.Errorf("Expected nil user, got %v", user)
 	}
 }
 
@@ -455,7 +553,12 @@ func TestCreateUser_WithPhotoURI(t *testing.T) {
 // Test Cases untuk UpdateUser
 // ============================================================
 
-// TestUpdateUser_Success menguji update user berhasil
+// Helper functions untuk membuat pointer dari value
+func strPtr(s string) *string { return &s }
+func intPtr(i int) *int       { return &i }
+func boolPtr(b bool) *bool    { return &b }
+
+// TestUpdateUser_Success menguji update user berhasil tanpa foto baru
 func TestUpdateUser_Success(t *testing.T) {
 	existingUser := &domain.User{
 		ID:           1,
@@ -480,17 +583,18 @@ func TestUpdateUser_Success(t *testing.T) {
 			return nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "New Name",
-		Email:    "new@example.com",
-		Role:     1,
-		PhotoURI: "https://example.com/new-photo.jpg",
-		IsActive: false,
+		FullName: strPtr("New Name"),
+		Email:    strPtr("new@example.com"),
+		Role:     intPtr(1),
+		IsActive: boolPtr(false),
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil) // tanpa foto baru
 
 	// Validasi
 	if err != nil {
@@ -511,9 +615,6 @@ func TestUpdateUser_Success(t *testing.T) {
 	if user.IsActive != false {
 		t.Error("Expected user to be inactive")
 	}
-	if user.PhotoURI == nil || *user.PhotoURI != "https://example.com/new-photo.jpg" {
-		t.Error("Expected photo URI to be updated")
-	}
 }
 
 // TestUpdateUser_NotFound menguji update user yang tidak ditemukan
@@ -523,16 +624,18 @@ func TestUpdateUser_NotFound(t *testing.T) {
 			return nil, errors.New("record not found")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "New Name",
-		Email:    "new@example.com",
-		Role:     1,
-		IsActive: true,
+		FullName: strPtr("New Name"),
+		Email:    strPtr("new@example.com"),
+		Role:     intPtr(1),
+		IsActive: boolPtr(true),
 	}
 
-	user, err := userService.UpdateUser(999, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 999, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -578,16 +681,18 @@ func TestUpdateUser_EmailAlreadyUsedByOther(t *testing.T) {
 			return nil, errors.New("not found")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "User One Updated",
-		Email:    "user2@example.com", // Mencoba pakai email user lain
-		Role:     2,
-		IsActive: true,
+		FullName: strPtr("User One Updated"),
+		Email:    strPtr("user2@example.com"), // Mencoba pakai email user lain
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -622,16 +727,18 @@ func TestUpdateUser_SameEmailAllowed(t *testing.T) {
 			return nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "User One Updated",
-		Email:    "user1@example.com", // Email sama, tidak berubah
-		Role:     1,
-		IsActive: true,
+		FullName: strPtr("User One Updated"),
+		Email:    strPtr("user1@example.com"), // Email sama, tidak berubah
+		Role:     intPtr(1),
+		IsActive: boolPtr(true),
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err != nil {
@@ -660,17 +767,19 @@ func TestUpdateUser_PasswordOnlyLetters(t *testing.T) {
 			return existingUser, nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "Test User",
-		Email:    "test@example.com",
-		Role:     2,
-		IsActive: true,
-		Password: "onlyletters", // Hanya huruf
+		FullName: strPtr("Test User"),
+		Email:    strPtr("test@example.com"),
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
+		Password: strPtr("onlyletters"), // Hanya huruf
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -699,17 +808,19 @@ func TestUpdateUser_PasswordOnlyNumbers(t *testing.T) {
 			return existingUser, nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "Test User",
-		Email:    "test@example.com",
-		Role:     2,
-		IsActive: true,
-		Password: "12345678", // Hanya angka
+		FullName: strPtr("Test User"),
+		Email:    strPtr("test@example.com"),
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
+		Password: strPtr("12345678"), // Hanya angka
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -742,17 +853,19 @@ func TestUpdateUser_WithValidPassword(t *testing.T) {
 			return nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "Test User",
-		Email:    "test@example.com",
-		Role:     2,
-		IsActive: true,
-		Password: "newpassword123", // Password valid
+		FullName: strPtr("Test User"),
+		Email:    strPtr("test@example.com"),
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
+		Password: strPtr("newpassword123"), // Password valid
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err != nil {
@@ -786,17 +899,19 @@ func TestUpdateUser_WithoutPassword(t *testing.T) {
 			return nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "Updated Name",
-		Email:    "test@example.com",
-		Role:     2,
-		IsActive: true,
-		Password: "", // Password kosong, tidak diubah
+		FullName: strPtr("Updated Name"),
+		Email:    strPtr("test@example.com"),
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
+		// Password nil, tidak diubah
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err != nil {
@@ -832,16 +947,18 @@ func TestUpdateUser_RepositoryError(t *testing.T) {
 			return errors.New("database connection failed")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "Updated Name",
-		Email:    "test@example.com",
-		Role:     2,
-		IsActive: true,
+		FullName: strPtr("Updated Name"),
+		Email:    strPtr("test@example.com"),
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err == nil {
@@ -855,14 +972,126 @@ func TestUpdateUser_RepositoryError(t *testing.T) {
 	}
 }
 
-// TestUpdateUser_ClearPhotoURI menguji update dengan menghapus photo URI
-func TestUpdateUser_ClearPhotoURI(t *testing.T) {
-	photoURI := "https://example.com/old-photo.jpg"
+// TestUpdateUser_WithNewPhotoFile menguji update user dengan foto baru (cloudinary upload)
+func TestUpdateUser_WithNewPhotoFile(t *testing.T) {
+	oldPhoto := "old-photo.jpg"
 	existingUser := &domain.User{
 		ID:       1,
 		FullName: "Test User",
 		Email:    "test@example.com",
-		PhotoURI: &photoURI,
+		PhotoURI: &oldPhoto,
+		Role:     2,
+		IsActive: true,
+	}
+
+	var uploadCalled, deleteOldCalled bool
+
+	mockRepo := &MockUserRepositoryForUserService{
+		FindByIDFunc: func(id int) (*domain.User, error) {
+			return existingUser, nil
+		},
+		UpdateFunc: func(user *domain.User) error {
+			return nil
+		},
+	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{
+		UploadImageFunc: func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+			uploadCalled = true
+			return "new-uploaded-photo.jpg", nil
+		},
+		GetImageURLFunc: func(folder string, fileName string) string {
+			return "https://res.cloudinary.com/test/" + folder + "/" + fileName
+		},
+		DeleteImageFunc: func(ctx context.Context, folder string, fileName string) error {
+			if fileName == oldPhoto {
+				deleteOldCalled = true
+			}
+			return nil
+		},
+	}
+
+	userService := NewUserService(mockRepo, mockCloudinary)
+	req := &requests.UpdateUserRequest{
+		FullName: strPtr("Test User"),
+		Email:    strPtr("test@example.com"),
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
+	}
+
+	ctx := context.Background()
+	photoFile := &multipart.FileHeader{Filename: "new-photo.jpg"}
+	user, err := userService.UpdateUser(ctx, 1, req, photoFile)
+
+	// Validasi
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if user == nil {
+		t.Error("Expected user, got nil")
+	}
+	if !uploadCalled {
+		t.Error("Expected cloudinary upload to be called")
+	}
+	if !deleteOldCalled {
+		t.Error("Expected old photo to be deleted from cloudinary")
+	}
+	expectedURL := "https://res.cloudinary.com/test/users/avatars/new-uploaded-photo.jpg"
+	if user.PhotoURI == nil || *user.PhotoURI != expectedURL {
+		t.Errorf("Expected photo URI '%s', got '%v'", expectedURL, user.PhotoURI)
+	}
+}
+
+// TestUpdateUser_UploadPhotoError menguji ketika upload foto gagal saat update
+func TestUpdateUser_UploadPhotoError(t *testing.T) {
+	existingUser := &domain.User{
+		ID:       1,
+		FullName: "Test User",
+		Email:    "test@example.com",
+		Role:     2,
+		IsActive: true,
+	}
+
+	mockRepo := &MockUserRepositoryForUserService{
+		FindByIDFunc: func(id int) (*domain.User, error) {
+			return existingUser, nil
+		},
+	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{
+		UploadImageFunc: func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+			return "", errors.New("cloudinary error")
+		},
+	}
+
+	userService := NewUserService(mockRepo, mockCloudinary)
+	req := &requests.UpdateUserRequest{
+		FullName: strPtr("Test User"),
+		Email:    strPtr("test@example.com"),
+		Role:     intPtr(2),
+		IsActive: boolPtr(true),
+	}
+
+	ctx := context.Background()
+	photoFile := &multipart.FileHeader{Filename: "new-photo.jpg"}
+	user, err := userService.UpdateUser(ctx, 1, req, photoFile)
+
+	// Validasi
+	if err == nil {
+		t.Error("Expected error, got nil")
+	}
+	if err.Error() != "gagal mengupload foto" {
+		t.Errorf("Expected error message 'gagal mengupload foto', got '%s'", err.Error())
+	}
+	if user != nil {
+		t.Errorf("Expected nil user, got %v", user)
+	}
+}
+
+// TestUpdateUser_PartialUpdate_OnlyFullName menguji partial update hanya FullName
+func TestUpdateUser_PartialUpdate_OnlyFullName(t *testing.T) {
+	existingUser := &domain.User{
+		ID:       1,
+		FullName: "Old Name",
+		Email:    "test@example.com",
 		Role:     2,
 		IsActive: true,
 	}
@@ -875,17 +1104,16 @@ func TestUpdateUser_ClearPhotoURI(t *testing.T) {
 			return nil
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	req := &requests.UpdateUserRequest{
-		FullName: "Test User",
-		Email:    "test@example.com",
-		Role:     2,
-		IsActive: true,
-		PhotoURI: "", // Kosongkan photo URI
+		FullName: strPtr("New Name"), // Hanya update FullName
+		// Field lain nil
 	}
 
-	user, err := userService.UpdateUser(1, req)
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
 
 	// Validasi
 	if err != nil {
@@ -894,8 +1122,71 @@ func TestUpdateUser_ClearPhotoURI(t *testing.T) {
 	if user == nil {
 		t.Error("Expected user, got nil")
 	}
-	if user.PhotoURI != nil {
-		t.Errorf("Expected photo URI to be nil, got %v", user.PhotoURI)
+	// FullName harus berubah
+	if user.FullName != "New Name" {
+		t.Errorf("Expected full name 'New Name', got %s", user.FullName)
+	}
+	// Field lain harus tetap sama
+	if user.Email != "test@example.com" {
+		t.Errorf("Expected email to remain 'test@example.com', got %s", user.Email)
+	}
+	if user.Role != 2 {
+		t.Errorf("Expected role to remain 2, got %d", user.Role)
+	}
+	if user.IsActive != true {
+		t.Error("Expected user to remain active")
+	}
+}
+
+// TestUpdateUser_PartialUpdate_OnlyRole menguji partial update hanya Role
+func TestUpdateUser_PartialUpdate_OnlyRole(t *testing.T) {
+	existingUser := &domain.User{
+		ID:       1,
+		FullName: "Test User",
+		Email:    "test@example.com",
+		Role:     2,
+		IsActive: true,
+	}
+
+	mockRepo := &MockUserRepositoryForUserService{
+		FindByIDFunc: func(id int) (*domain.User, error) {
+			return existingUser, nil
+		},
+		UpdateFunc: func(user *domain.User) error {
+			return nil
+		},
+	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
+
+	userService := NewUserService(mockRepo, mockCloudinary)
+	req := &requests.UpdateUserRequest{
+		Role: intPtr(1), // Hanya update Role
+		// Field lain nil
+	}
+
+	ctx := context.Background()
+	user, err := userService.UpdateUser(ctx, 1, req, nil)
+
+	// Validasi
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if user == nil {
+		t.Error("Expected user, got nil")
+	}
+	// Role harus berubah
+	if user.Role != 1 {
+		t.Errorf("Expected role 1, got %d", user.Role)
+	}
+	// Field lain harus tetap sama
+	if user.FullName != "Test User" {
+		t.Errorf("Expected full name to remain 'Test User', got %s", user.FullName)
+	}
+	if user.Email != "test@example.com" {
+		t.Errorf("Expected email to remain 'test@example.com', got %s", user.Email)
+	}
+	if user.IsActive != true {
+		t.Error("Expected user to remain active")
 	}
 }
 
@@ -920,10 +1211,11 @@ func TestDeleteUser_Success(t *testing.T) {
 			}
 			return nil, errors.New("not found")
 		},
-		// Delete stub method will return nil by default (line 53)
+		// Delete stub method will return nil by default
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	err := userService.DeleteUser(1)
 
 	// Validasi
@@ -939,8 +1231,9 @@ func TestDeleteUser_NotFound(t *testing.T) {
 			return nil, errors.New("record not found")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	err := userService.DeleteUser(999)
 
 	// Validasi
@@ -973,8 +1266,9 @@ func TestDeleteUser_RepositoryError(t *testing.T) {
 			return errors.New("database connection failed")
 		},
 	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
-	userService := NewUserService(mockRepo)
+	userService := NewUserService(mockRepo, mockCloudinary)
 	err := userService.DeleteUser(1)
 
 	// Validasi

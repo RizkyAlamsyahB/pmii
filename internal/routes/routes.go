@@ -64,9 +64,6 @@ func SetupRoutes(
 			// GET /v1/admin/dashboard - Admin dashboard
 			adminRoutes.GET("/dashboard", adminHandler.GetDashboard)
 
-			// GET /v1/admin/users - List all users (Admin only)
-			adminRoutes.GET("/users", adminHandler.GetAllUsers)
-
 			// Testimonial Routes - Admin Only
 			adminRoutes.POST("/testimonials", testimonialHandler.Create)       // POST /v1/admin/testimonials
 			adminRoutes.GET("/testimonials", testimonialHandler.GetAll)        // GET /v1/admin/testimonials
