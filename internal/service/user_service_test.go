@@ -12,7 +12,7 @@ import (
 
 // MockUserRepository adalah mock untuk UserRepository (untuk testing UserService)
 type MockUserRepositoryForUserService struct {
-	FindAllFunc     func() ([]domain.User, error)
+	FindAllFunc     func(page, limit int) ([]domain.User, int64, error)
 	FindByIDFunc    func(id int) (*domain.User, error)
 	FindByEmailFunc func(email string) (*domain.User, error)
 	CreateFunc      func(user *domain.User) error
@@ -20,11 +20,11 @@ type MockUserRepositoryForUserService struct {
 	DeleteFunc      func(id int) error
 }
 
-func (m *MockUserRepositoryForUserService) FindAll() ([]domain.User, error) {
+func (m *MockUserRepositoryForUserService) FindAll(page, limit int) ([]domain.User, int64, error) {
 	if m.FindAllFunc != nil {
-		return m.FindAllFunc()
+		return m.FindAllFunc(page, limit)
 	}
-	return nil, errors.New("mock not configured")
+	return nil, 0, errors.New("mock not configured")
 }
 
 func (m *MockUserRepositoryForUserService) FindByID(id int) (*domain.User, error) {
@@ -96,7 +96,7 @@ func (m *MockCloudinaryServiceForUserService) DeleteImage(ctx context.Context, f
 // Test Cases untuk GetAllUsers
 // ============================================================
 
-// TestGetAllUsers_Success menguji pengambilan semua users berhasil
+// TestGetAllUsers_Success menguji pengambilan semua users berhasil dengan pagination
 func TestGetAllUsers_Success(t *testing.T) {
 	// Mock data
 	mockUsers := []domain.User{
@@ -117,14 +117,14 @@ func TestGetAllUsers_Success(t *testing.T) {
 	}
 
 	mockRepo := &MockUserRepositoryForUserService{
-		FindAllFunc: func() ([]domain.User, error) {
-			return mockUsers, nil
+		FindAllFunc: func(page, limit int) ([]domain.User, int64, error) {
+			return mockUsers, 2, nil
 		},
 	}
 	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
 	userService := NewUserService(mockRepo, mockCloudinary)
-	users, err := userService.GetAllUsers()
+	users, currentPage, lastPage, total, err := userService.GetAllUsers(1, 20)
 
 	// Validasi
 	if err != nil {
@@ -142,19 +142,80 @@ func TestGetAllUsers_Success(t *testing.T) {
 	if users[1].Email != "user@example.com" {
 		t.Errorf("Expected second user email to be user@example.com, got %s", users[1].Email)
 	}
+	if currentPage != 1 {
+		t.Errorf("Expected currentPage to be 1, got %d", currentPage)
+	}
+	if lastPage != 1 {
+		t.Errorf("Expected lastPage to be 1, got %d", lastPage)
+	}
+	if total != 2 {
+		t.Errorf("Expected total to be 2, got %d", total)
+	}
 }
 
-// TestGetAllUsers_EmptyList menguji ketika tidak ada users di database
-func TestGetAllUsers_EmptyList(t *testing.T) {
+// TestGetAllUsers_Pagination menguji kalkulasi pagination
+func TestGetAllUsers_Pagination(t *testing.T) {
+	mockUsers := []domain.User{
+		{ID: 1, FullName: "User 1", Email: "user1@example.com", Role: 2, IsActive: true},
+	}
+
 	mockRepo := &MockUserRepositoryForUserService{
-		FindAllFunc: func() ([]domain.User, error) {
-			return []domain.User{}, nil
+		FindAllFunc: func(page, limit int) ([]domain.User, int64, error) {
+			return mockUsers, 45, nil // 45 total records
 		},
 	}
 	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
 	userService := NewUserService(mockRepo, mockCloudinary)
-	users, err := userService.GetAllUsers()
+	_, currentPage, lastPage, total, err := userService.GetAllUsers(2, 20)
+
+	// Validasi
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if currentPage != 2 {
+		t.Errorf("Expected currentPage to be 2, got %d", currentPage)
+	}
+	if lastPage != 3 {
+		t.Errorf("Expected lastPage to be 3 (ceil(45/20)), got %d", lastPage)
+	}
+	if total != 45 {
+		t.Errorf("Expected total to be 45, got %d", total)
+	}
+}
+
+// TestGetAllUsers_DefaultValues menguji default values untuk pagination
+func TestGetAllUsers_DefaultValues(t *testing.T) {
+	mockRepo := &MockUserRepositoryForUserService{
+		FindAllFunc: func(page, limit int) ([]domain.User, int64, error) {
+			// Verify default values are applied
+			if page != 1 {
+				t.Errorf("Expected page to be defaulted to 1, got %d", page)
+			}
+			if limit != 20 {
+				t.Errorf("Expected limit to be defaulted to 20, got %d", limit)
+			}
+			return []domain.User{}, 0, nil
+		},
+	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
+
+	userService := NewUserService(mockRepo, mockCloudinary)
+	// Pass invalid values to test defaults
+	userService.GetAllUsers(0, 0)
+}
+
+// TestGetAllUsers_EmptyList menguji ketika tidak ada users di database
+func TestGetAllUsers_EmptyList(t *testing.T) {
+	mockRepo := &MockUserRepositoryForUserService{
+		FindAllFunc: func(page, limit int) ([]domain.User, int64, error) {
+			return []domain.User{}, 0, nil
+		},
+	}
+	mockCloudinary := &MockCloudinaryServiceForUserService{}
+
+	userService := NewUserService(mockRepo, mockCloudinary)
+	users, currentPage, lastPage, total, err := userService.GetAllUsers(1, 20)
 
 	// Validasi
 	if err != nil {
@@ -166,19 +227,28 @@ func TestGetAllUsers_EmptyList(t *testing.T) {
 	if len(users) != 0 {
 		t.Errorf("Expected 0 users, got %d", len(users))
 	}
+	if currentPage != 1 {
+		t.Errorf("Expected currentPage to be 1, got %d", currentPage)
+	}
+	if lastPage != 0 {
+		t.Errorf("Expected lastPage to be 0, got %d", lastPage)
+	}
+	if total != 0 {
+		t.Errorf("Expected total to be 0, got %d", total)
+	}
 }
 
 // TestGetAllUsers_RepositoryError menguji ketika repository gagal
 func TestGetAllUsers_RepositoryError(t *testing.T) {
 	mockRepo := &MockUserRepositoryForUserService{
-		FindAllFunc: func() ([]domain.User, error) {
-			return nil, errors.New("database connection failed")
+		FindAllFunc: func(page, limit int) ([]domain.User, int64, error) {
+			return nil, 0, errors.New("database connection failed")
 		},
 	}
 	mockCloudinary := &MockCloudinaryServiceForUserService{}
 
 	userService := NewUserService(mockRepo, mockCloudinary)
-	users, err := userService.GetAllUsers()
+	users, _, _, _, err := userService.GetAllUsers(1, 20)
 
 	// Validasi
 	if err == nil {

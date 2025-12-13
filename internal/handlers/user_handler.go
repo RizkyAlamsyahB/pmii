@@ -36,10 +36,14 @@ func (h *UserHandler) GetDashboard(c *gin.Context) {
 }
 
 // GetAllUsers handles GET /users (Admin Only)
-// Menampilkan list semua user di sistem
+// Menampilkan list semua user di sistem dengan pagination
 func (h *UserHandler) GetAllUsers(c *gin.Context) {
-	// Get all users dari service
-	users, err := h.userService.GetAllUsers()
+	// Parse query params untuk pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	// Get all users dari service dengan pagination
+	users, currentPage, lastPage, total, err := h.userService.GetAllUsers(page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengambil data user"))
 		return
@@ -57,13 +61,13 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 		})
 	}
 
-	// Response dengan total count
+	// Response dengan pagination
 	response := responses.UserListResponse{
 		Users: userList,
 		Total: len(userList),
 	}
 
-	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Data user berhasil diambil", response))
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(200, "Data user berhasil diambil", response, currentPage, limit, total, lastPage))
 }
 
 // GetUserByID handles GET /users/:id

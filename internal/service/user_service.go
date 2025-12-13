@@ -14,7 +14,7 @@ import (
 
 // UserService interface untuk business logic user operations
 type UserService interface {
-	GetAllUsers() ([]domain.User, error)
+	GetAllUsers(page, limit int) ([]domain.User, int, int, int64, error)
 	GetUserByID(id int) (*domain.User, error)
 	CreateUser(ctx context.Context, req *requests.CreateUserRequest, photoFile *multipart.FileHeader) (*domain.User, error)
 	UpdateUser(ctx context.Context, id int, req *requests.UpdateUserRequest, photoFile *multipart.FileHeader) (*domain.User, error)
@@ -31,13 +31,28 @@ func NewUserService(userRepo repository.UserRepository, cloudinaryService Cloudi
 	return &userService{userRepo: userRepo, cloudinaryService: cloudinaryService}
 }
 
-// GetAllUsers mengambil semua user dari database
-func (s *userService) GetAllUsers() ([]domain.User, error) {
-	users, err := s.userRepo.FindAll()
-	if err != nil {
-		return nil, errors.New("gagal mengambil data user")
+// GetAllUsers mengambil semua user dari database dengan pagination
+func (s *userService) GetAllUsers(page, limit int) ([]domain.User, int, int, int64, error) {
+	// Set default values
+	if page < 1 {
+		page = 1
 	}
-	return users, nil
+	if limit < 1 {
+		limit = 20
+	}
+
+	users, total, err := s.userRepo.FindAll(page, limit)
+	if err != nil {
+		return nil, 0, 0, 0, errors.New("gagal mengambil data user")
+	}
+
+	// Calculate last page
+	lastPage := int(total) / limit
+	if int(total)%limit != 0 {
+		lastPage++
+	}
+
+	return users, page, lastPage, total, nil
 }
 
 // GetUserByID mengambil user berdasarkan ID
