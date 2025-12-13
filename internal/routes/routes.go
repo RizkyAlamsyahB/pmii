@@ -77,26 +77,22 @@ func SetupRoutes(
 			adminRoutes.GET("/members/:id", memberHandler.GetByID)   // GET /v1/admin/members/:id
 			adminRoutes.PUT("/members/:id", memberHandler.Update)    // PUT /v1/admin/members/:id
 			adminRoutes.DELETE("/members/:id", memberHandler.Delete) // DELETE /v1/admin/members/:id
+
+			// User Management Routes - Admin Only
+			adminRoutes.GET("/users", userHandler.GetAllUsers)           // GET /v1/admin/users
+			adminRoutes.POST("/users", userHandler.CreateUser)           // POST /v1/admin/users
+			adminRoutes.PUT("/users/:id", userHandler.UpdateUserByID)    // PUT /v1/admin/users/:id
+			adminRoutes.DELETE("/users/:id", userHandler.DeleteUserByID) // DELETE /v1/admin/users/:id
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
 		userRoutes := v1.Group("/users")
 		userRoutes.Use(middleware.AuthMiddleware())
 		{
-			// GET /v1/users - List all users (Admin only)
-			userRoutes.GET("", middleware.RequireRole("1"), userHandler.GetAllUsers)
-
-			// POST /v1/users - Create new user (Admin only)
-			userRoutes.POST("", middleware.RequireRole("1"), userHandler.CreateUser)
 
 			// GET /v1/users/:id - Get user by ID (admin: any user, non-admin: own data only)
 			userRoutes.GET("/:id", middleware.RequireOwnerOrAdmin("id"), userHandler.GetUserByID)
 
-			// PUT /v1/users/:id - Update user by ID (Admin only)
-			userRoutes.PUT("/:id", middleware.RequireRole("1"), userHandler.UpdateUserByID)
-
-			// DELETE /v1/users/:id - Delete user by ID (Admin only)
-			userRoutes.DELETE("/:id", middleware.RequireRole("1"), userHandler.DeleteUserByID)
 		}
 	}
 }
