@@ -7,6 +7,7 @@ type UserListItem struct {
 	Email    string `json:"email"`
 	Role     string `json:"role"`
 	Status   string `json:"status"`
+	PhotoUri string `json:"photo_uri,omitempty"`
 }
 
 // UserListResponse adalah response untuk GET /admin/users
@@ -22,5 +23,5 @@ type UserProfileResponse struct {
 	Email    string `json:"email"`
 	Role     string `json:"role"`
 	Status   string `json:"status"`
-	Photo    string `json:"photo,omitempty"`
+	PhotoUri string `json:"photo_uri,omitempty"`
 }

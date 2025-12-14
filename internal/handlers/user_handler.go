@@ -53,12 +53,17 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	// Convert domain.User ke UserListItem DTO
 	userList := make([]responses.UserListItem, 0, len(users))
 	for _, user := range users {
+		photoUri := ""
+		if user.PhotoURI != nil {
+			photoUri = *user.PhotoURI
+		}
 		userList = append(userList, responses.UserListItem{
 			ID:       user.ID,
 			FullName: user.FullName,
 			Email:    user.Email,
 			Role:     getRoleName(user.Role),
 			Status:   getStatusName(user.IsActive),
+			PhotoUri: photoUri,
 		})
 	}
 
@@ -88,9 +93,9 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 	}
 
 	// Convert domain.User ke UserProfileResponse DTO
-	photo := ""
+	photoUri := ""
 	if user.PhotoURI != nil {
-		photo = *user.PhotoURI
+		photoUri = *user.PhotoURI
 	}
 	profile := responses.UserProfileResponse{
 		ID:       user.ID,
@@ -98,7 +103,7 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 		Email:    user.Email,
 		Role:     getRoleName(user.Role),
 		Status:   getStatusName(user.IsActive),
-		Photo:    photo,
+		PhotoUri: photoUri,
 	}
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Profil berhasil diambil", profile))
@@ -144,12 +149,17 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	// Convert domain.User ke response DTO
+	photoUri := ""
+	if user.PhotoURI != nil {
+		photoUri = *user.PhotoURI
+	}
 	response := responses.UserListItem{
 		ID:       user.ID,
 		FullName: user.FullName,
 		Email:    user.Email,
 		Role:     getRoleName(user.Role),
 		Status:   getStatusName(user.IsActive),
+		PhotoUri: photoUri,
 	}
 
 	c.JSON(http.StatusCreated, responses.SuccessResponse(201, "User berhasil dibuat", response))
@@ -204,12 +214,17 @@ func (h *UserHandler) UpdateUserByID(c *gin.Context) {
 	}
 
 	// Convert domain.User ke response DTO
+	photoUri := ""
+	if user.PhotoURI != nil {
+		photoUri = *user.PhotoURI
+	}
 	response := responses.UserListItem{
 		ID:       user.ID,
 		FullName: user.FullName,
 		Email:    user.Email,
 		Role:     getRoleName(user.Role),
 		Status:   getStatusName(user.IsActive),
+		PhotoUri: photoUri,
 	}
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "User berhasil diupdate", response))
