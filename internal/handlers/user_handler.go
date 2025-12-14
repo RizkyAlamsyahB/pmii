@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -43,9 +44,9 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
 	// Get all users dari service dengan pagination
-	users, currentPage, lastPage, total, err := h.userService.GetAllUsers(page, limit)
+	users, currentPage, lastPage, total, err := h.userService.GetAllUsers(c.Request.Context(), page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengambil data user"))
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}
 
@@ -80,9 +81,9 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 	}
 
 	// Get user by ID dari service (access control already done by middleware)
-	user, err := h.userService.GetUserByID(requestedID)
+	user, err := h.userService.GetUserByID(c.Request.Context(), requestedID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "User tidak ditemukan"))
+		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
 		return
 	}
 
@@ -129,15 +130,15 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	user, err := h.userService.CreateUser(c.Request.Context(), &req, photoFile)
 	if err != nil {
 		// Handle specific errors
-		switch err.Error() {
-		case "email sudah terdaftar":
-			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Email sudah terdaftar"))
-		case "password harus kombinasi huruf dan angka":
-			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Password harus kombinasi huruf dan angka"))
-		case "gagal mengupload foto":
-			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengupload foto"))
+		switch {
+		case errors.Is(err, service.ErrEmailAlreadyExists):
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
+		case errors.Is(err, service.ErrInvalidPassword):
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
+		case errors.Is(err, service.ErrPhotoUploadFailed):
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		default:
-			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal membuat user"))
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		}
 		return
 	}
@@ -187,17 +188,17 @@ func (h *UserHandler) UpdateUserByID(c *gin.Context) {
 	user, err := h.userService.UpdateUser(c.Request.Context(), userID, &req, photoFile)
 	if err != nil {
 		// Handle specific errors
-		switch err.Error() {
-		case "user tidak ditemukan":
-			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "User tidak ditemukan"))
-		case "email sudah digunakan user lain":
-			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Email sudah digunakan user lain"))
-		case "password harus kombinasi huruf dan angka":
-			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Password harus kombinasi huruf dan angka"))
-		case "gagal mengupload foto":
-			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengupload foto"))
+		switch {
+		case errors.Is(err, service.ErrUserNotFound):
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+		case errors.Is(err, service.ErrEmailAlreadyUsed):
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
+		case errors.Is(err, service.ErrInvalidPassword):
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
+		case errors.Is(err, service.ErrPhotoUploadFailed):
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		default:
-			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengupdate user"))
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		}
 		return
 	}
@@ -225,13 +226,13 @@ func (h *UserHandler) DeleteUserByID(c *gin.Context) {
 	}
 
 	// Delete user via service
-	if err := h.userService.DeleteUser(userID); err != nil {
+	if err := h.userService.DeleteUser(c.Request.Context(), userID); err != nil {
 		// Handle specific errors
-		if err.Error() == "user tidak ditemukan" {
-			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "User tidak ditemukan"))
+		if errors.Is(err, service.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
 			return
 		}
-		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menghapus user"))
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}
 
