@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"mime/multipart"
 	"regexp"
 
@@ -225,7 +226,7 @@ func (s *userService) UpdateUser(ctx context.Context, id int, req *requests.Upda
 // DeleteUser menghapus user berdasarkan ID (soft delete)
 func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	// Cek apakah user ada dan ambil info foto
-	user, err := s.userRepo.FindByID(id)
+	_, err := s.userRepo.FindByID(id)
 	if err != nil {
 		return ErrUserNotFound
 	}
@@ -235,10 +236,21 @@ func (s *userService) DeleteUser(ctx context.Context, id int) error {
 		return ErrUserDeleteFailed
 	}
 
-	// Hapus foto dari Cloudinary (jika ada)
-	if user.PhotoURI != nil {
-		_ = s.cloudinaryService.DeleteImage(ctx, "users/avatars", *user.PhotoURI)
-	}
+	// Foto tidak dihapus dari cloudinary karena soft delete
 
 	return nil
 }
+
+// User service errors
+var (
+	ErrUserNotFound       = errors.New("user tidak ditemukan")
+	ErrEmailAlreadyExists = errors.New("email sudah terdaftar")
+	ErrEmailAlreadyUsed   = errors.New("email sudah digunakan user lain")
+	ErrInvalidPassword    = errors.New("password harus kombinasi huruf dan angka")
+	ErrPasswordProcessing = errors.New("gagal memproses password")
+	ErrPhotoUploadFailed  = errors.New("gagal mengupload foto")
+	ErrUserCreateFailed   = errors.New("gagal membuat user")
+	ErrUserUpdateFailed   = errors.New("gagal mengupdate user")
+	ErrUserDeleteFailed   = errors.New("gagal menghapus user")
+	ErrUserFetchFailed    = errors.New("gagal mengambil data user")
+)
