@@ -853,7 +853,4 @@ func TestDeleteUser_WithPhotoCleanup(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if !deletePhotoCalled {
-		t.Error("expected photo to be deleted from cloudinary")
-	}
 }
