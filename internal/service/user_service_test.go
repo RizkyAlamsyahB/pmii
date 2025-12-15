@@ -781,6 +781,7 @@ func TestDeleteUser(t *testing.T) {
 					FindByIDFunc: func(id int) (*domain.User, error) {
 						return &domain.User{ID: 1, FullName: "Test User", Email: "test@example.com", Role: 2, IsActive: true}, nil
 					},
+					DeleteFunc: func(id int) error { return nil },
 				}
 			},
 		},
@@ -828,8 +829,8 @@ func TestDeleteUser(t *testing.T) {
 	}
 }
 
-// TestDeleteUser_WithPhotoCleanup menguji penghapusan user dengan foto
-func TestDeleteUser_WithPhotoCleanup(t *testing.T) {
+// TestDeleteUser_NoPhotoCleanupOnSoftDelete menguji bahwa foto TIDAK dihapus saat soft delete
+func TestDeleteUser_NoPhotoCleanupOnSoftDelete(t *testing.T) {
 	photoURI := "user-photo.jpg"
 	existingUser := &domain.User{ID: 1, FullName: "Test User", Email: "test@example.com", PhotoURI: &photoURI, Role: 2, IsActive: true}
 	var deletePhotoCalled bool
@@ -852,5 +853,8 @@ func TestDeleteUser_WithPhotoCleanup(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+	}
+	if deletePhotoCalled {
+		t.Error("photo should NOT be deleted during soft delete")
 	}
 }

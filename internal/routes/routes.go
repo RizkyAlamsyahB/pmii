@@ -80,6 +80,7 @@ func SetupRoutes(
 
 			// User Management Routes - Admin Only
 			adminRoutes.GET("/users", userHandler.GetAllUsers)           // GET /v1/admin/users
+			adminRoutes.GET("/users/:id", userHandler.GetUserByID)       // GET /v1/admin/users/:id
 			adminRoutes.POST("/users", userHandler.CreateUser)           // POST /v1/admin/users
 			adminRoutes.PUT("/users/:id", userHandler.UpdateUserByID)    // PUT /v1/admin/users/:id
 			adminRoutes.DELETE("/users/:id", userHandler.DeleteUserByID) // DELETE /v1/admin/users/:id
@@ -89,10 +90,8 @@ func SetupRoutes(
 		userRoutes := v1.Group("/users")
 		userRoutes.Use(middleware.AuthMiddleware())
 		{
-
-			// GET /v1/users/:id - Get user by ID (admin: any user, non-admin: own data only)
-			userRoutes.GET("/:id", middleware.RequireOwnerOrAdmin("id"), userHandler.GetUserByID)
-
+			// GET /v1/users/me - Get own profile
+			userRoutes.GET("/me", userHandler.GetMyProfile)
 		}
 	}
 }

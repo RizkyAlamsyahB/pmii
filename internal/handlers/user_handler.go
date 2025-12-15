@@ -76,7 +76,46 @@ func (h *UserHandler) GetAllUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(200, "Data user berhasil diambil", response, currentPage, limit, total, lastPage))
 }
 
-// GetUserByID handles GET /users/:id
+// GetMyProfile handles GET /users/me - Get authenticated user's own profile
+func (h *UserHandler) GetMyProfile(c *gin.Context) {
+	// Get user_id from context (set by AuthMiddleware)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Akses ditolak: Token tidak valid"))
+		return
+	}
+
+	currentUserID, ok := userID.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Terjadi kesalahan sistem"))
+		return
+	}
+
+	// Get user by ID dari service
+	user, err := h.userService.GetUserByID(c.Request.Context(), currentUserID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+		return
+	}
+
+	// Convert domain.User ke UserProfileResponse DTO
+	photoUri := ""
+	if user.PhotoURI != nil {
+		photoUri = *user.PhotoURI
+	}
+	profile := responses.UserProfileResponse{
+		ID:       user.ID,
+		FullName: user.FullName,
+		Email:    user.Email,
+		Role:     getRoleName(user.Role),
+		Status:   getStatusName(user.IsActive),
+		PhotoUri: photoUri,
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Berhasil mendapatkan profile", profile))
+}
+
+// GetUserByID handles GET /admin/users/:id - Admin only
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	// Parse URL param :id
 	requestedID, err := strconv.Atoi(c.Param("id"))
