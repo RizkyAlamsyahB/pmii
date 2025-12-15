@@ -108,6 +108,21 @@ func SetupRoutes(
 			categories.DELETE("/:id", handlers.DeleteCategory)
 		}
 
+		tags := v1.Group("/tags")
+		{
+			// Create (POST /v1/tags)
+			tags.POST("", handlers.CreateTag)
+
+			// Read All (GET /v1/tags)
+			tags.GET("", handlers.GetTags)
+
+			// Update (PUT /v1/tags/:id)
+			tags.PUT("/:id", handlers.UpdateTag)
+
+			// Delete (DELETE /v1/tags/:id)
+			tags.DELETE("/:id", handlers.DeleteTag)
+		}
+
 	}
 
 }
