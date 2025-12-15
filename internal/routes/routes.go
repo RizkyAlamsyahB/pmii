@@ -93,6 +93,20 @@ func SetupRoutes(
 			posts.PUT("/:id", handlers.UpdatePost)    // Update
 			posts.DELETE("/:id", handlers.DeletePost) // Delete
 		}
+		categories := v1.Group("/categories")
+		{
+			// Create (POST /v1/categories)
+			categories.POST("", handlers.CreateCategory)
+
+			// Read All (GET /v1/categories)
+			categories.GET("", handlers.GetCategories)
+
+			// Update (PUT /v1/categories/:id) -> Jika ingin pakai
+			categories.PUT("/:id", handlers.UpdateCategory)
+
+			// Delete (DELETE /v1/categories/:id)
+			categories.DELETE("/:id", handlers.DeleteCategory)
+		}
 
 	}
 
