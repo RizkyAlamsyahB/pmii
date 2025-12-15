@@ -101,3 +101,54 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Logout berhasil", nil))
 }
+
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req requests.ChangePasswordRequest
+
+	// Validasi input
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
+		validationErrors := make(map[string][]string)
+
+		validationErr, ok := err.(validator.ValidationErrors)
+		if ok {
+			for _, e := range validationErr {
+				fieldName := strings.ToLower(e.Field())
+				var message string
+
+				switch e.Tag() {
+				case "required":
+					if fieldName == "oldpassword" {
+						message = "Password lama wajib diisi"
+					} else if fieldName == "newpassword" {
+						message = "Password baru wajib diisi"
+					}
+				case "min":
+					message = "Password baru minimal 8 karakter"
+				case "containsany":
+					message = "Password baru harus mengandung minimal satu karakter spesial (!@#$%^&*)"
+				}
+
+				validationErrors[fieldName] = append(validationErrors[fieldName], message)
+			}
+		}
+
+		c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(validationErrors))
+		return
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "User tidak terautentikasi"))
+		return
+	}
+
+	// Panggil service layer dengan userID langsung
+	err = h.authService.ChangePassword(userID.(int), req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
+		return
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Password berhasil diubah", nil))
+}

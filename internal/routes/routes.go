@@ -55,6 +55,9 @@ func SetupRoutes(
 
 			// Logout (butuh auth)
 			auth.POST("/logout", middleware.AuthMiddleware(), authHandler.Logout)
+
+			// Ubah/ganti password
+			auth.POST("/change-password", middleware.AuthMiddleware(), authHandler.ChangePassword)
 		}
 
 		// Admin Routes - Requires Admin Role (Level 1)
