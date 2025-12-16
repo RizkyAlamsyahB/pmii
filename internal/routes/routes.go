@@ -17,6 +17,7 @@ func SetupRoutes(
 	userHandler *handlers.UserHandler,
 	testimonialHandler *handlers.TestimonialHandler,
 	memberHandler *handlers.MemberHandler,
+	aboutHandler *handlers.AboutHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -67,9 +68,6 @@ func SetupRoutes(
 			// GET /v1/admin/dashboard - Admin dashboard
 			adminRoutes.GET("/dashboard", adminHandler.GetDashboard)
 
-			// GET /v1/admin/users - List all users (Admin only)
-			adminRoutes.GET("/users", adminHandler.GetAllUsers)
-
 			// Testimonial Routes - Admin Only
 			adminRoutes.POST("/testimonials", testimonialHandler.Create)       // POST /v1/admin/testimonials
 			adminRoutes.GET("/testimonials", testimonialHandler.GetAll)        // GET /v1/admin/testimonials
@@ -83,17 +81,24 @@ func SetupRoutes(
 			adminRoutes.GET("/members/:id", memberHandler.GetByID)   // GET /v1/admin/members/:id
 			adminRoutes.PUT("/members/:id", memberHandler.Update)    // PUT /v1/admin/members/:id
 			adminRoutes.DELETE("/members/:id", memberHandler.Delete) // DELETE /v1/admin/members/:id
+
+			// User Management Routes - Admin Only
+			adminRoutes.GET("/users", userHandler.GetAllUsers)           // GET /v1/admin/users
+			adminRoutes.GET("/users/:id", userHandler.GetUserByID)       // GET /v1/admin/users/:id
+			adminRoutes.POST("/users", userHandler.CreateUser)           // POST /v1/admin/users
+			adminRoutes.PUT("/users/:id", userHandler.UpdateUserByID)    // PUT /v1/admin/users/:id
+			adminRoutes.DELETE("/users/:id", userHandler.DeleteUserByID) // DELETE /v1/admin/users/:id
+			// About Routes - Admin Only (singleton - only GET and PUT)
+			adminRoutes.GET("/about", aboutHandler.Get)    // GET /v1/admin/about
+			adminRoutes.PUT("/about", aboutHandler.Update) // PUT /v1/admin/about
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
-		userRoutes := v1.Group("/user")
+		userRoutes := v1.Group("/users")
 		userRoutes.Use(middleware.AuthMiddleware())
 		{
-			// GET /v1/user/dashboard - User dashboard
-			userRoutes.GET("/dashboard", userHandler.GetDashboard)
-
-			// GET /v1/user/profile - Get own profile
-			userRoutes.GET("/profile", userHandler.GetProfile)
+			// GET /v1/users/me - Get own profile
+			userRoutes.GET("/me", userHandler.GetMyProfile)
 		}
 	}
 }

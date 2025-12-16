@@ -67,13 +67,17 @@ func (h *MemberHandler) Create(c *gin.Context) {
 
 // GetAll handles GET /v1/admin/members
 func (h *MemberHandler) GetAll(c *gin.Context) {
-	members, err := h.memberService.GetAll(c.Request.Context())
+	// Parse pagination parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	members, pageNum, lastPage, total, err := h.memberService.GetAll(c.Request.Context(), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}
 
-	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Data member berhasil diambil", members))
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(200, "List of members", members, pageNum, limit, int64(lastPage), int(total)))
 }
 
 // GetByID handles GET /v1/admin/members/:id

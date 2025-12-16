@@ -10,7 +10,7 @@ import (
 type UserRepository interface {
 	FindByEmail(email string) (*domain.User, error)
 	FindByID(id int) (*domain.User, error)
-	FindAll() ([]domain.User, error)
+	FindAll(page, limit int) ([]domain.User, int64, error)
 	Create(user *domain.User) error
 	Update(user *domain.User) error
 	Delete(id int) error
@@ -44,13 +44,25 @@ func (r *userRepository) FindByID(id int) (*domain.User, error) {
 	return &user, nil
 }
 
-// FindAll mengambil semua user
-func (r *userRepository) FindAll() ([]domain.User, error) {
+// FindAll mengambil semua user dengan pagination
+func (r *userRepository) FindAll(page, limit int) ([]domain.User, int64, error) {
 	var users []domain.User
-	if err := r.db.Find(&users).Error; err != nil {
-		return nil, err
+	var total int64
+
+	// Count total records
+	if err := r.db.Model(&domain.User{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return users, nil
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	// Get paginated data
+	if err := r.db.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
 }
 
 // Create membuat user baru
