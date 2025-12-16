@@ -49,6 +49,7 @@ func (s *memberService) Create(ctx context.Context, req requests.CreateMemberReq
 	member := &domain.Member{
 		FullName:    req.FullName,
 		Position:    req.Position,
+		Department:  domain.MemberDepartment(req.Department),
 		PhotoURI:    photoFilename,
 		SocialLinks: req.SocialLinks,
 		IsActive:    true,
@@ -136,6 +137,9 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 	if req.Position != "" {
 		member.Position = req.Position
 	}
+	if req.Department != "" {
+		member.Department = domain.MemberDepartment(req.Department)
+	}
 	if req.SocialLinks != nil && len(req.SocialLinks) > 0 {
 		member.SocialLinks = req.SocialLinks
 	}
@@ -192,6 +196,7 @@ func (s *memberService) toResponseDTO(m *domain.Member) *responses.MemberRespons
 		ID:          m.ID,
 		FullName:    m.FullName,
 		Position:    m.Position,
+		Department:  string(m.Department),
 		Photo:       imageURL,
 		SocialLinks: m.SocialLinks,
 		IsActive:    m.IsActive,

@@ -79,6 +79,8 @@ func main() {
 	testimonialRepo := repository.NewTestimonialRepository(db)
 	memberRepo := repository.NewMemberRepository(db)
 	aboutRepo := repository.NewAboutRepository(db)
+	siteSettingRepo := repository.NewSiteSettingRepository(db)
+	contactRepo := repository.NewContactRepository(db)
 
 	// 7. Initialize Services (Business Logic Layer)
 	authService := service.NewAuthService(userRepo)
@@ -86,6 +88,9 @@ func main() {
 	testimonialService := service.NewTestimonialService(testimonialRepo, cloudinaryService)
 	memberService := service.NewMemberService(memberRepo, cloudinaryService)
 	aboutService := service.NewAboutService(aboutRepo, cloudinaryService)
+	siteSettingService := service.NewSiteSettingService(siteSettingRepo, cloudinaryService)
+	contactService := service.NewContactService(contactRepo)
+	publicAboutService := service.NewPublicAboutService(aboutRepo, memberRepo, contactRepo, cloudinaryService)
 
 	// 8. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)
@@ -94,6 +99,9 @@ func main() {
 	testimonialHandler := handlers.NewTestimonialHandler(testimonialService)
 	memberHandler := handlers.NewMemberHandler(memberService)
 	aboutHandler := handlers.NewAboutHandler(aboutService)
+	siteSettingHandler := handlers.NewSiteSettingHandler(siteSettingService)
+	contactHandler := handlers.NewContactHandler(contactService)
+	publicAboutHandler := handlers.NewPublicAboutHandler(publicAboutService)
 
 	// 9. Setup Gin Router
 	if cfg.Server.Environment == "production" {
@@ -102,7 +110,7 @@ func main() {
 	r := gin.Default()
 
 	// 10. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port

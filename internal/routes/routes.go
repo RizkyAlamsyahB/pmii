@@ -18,6 +18,9 @@ func SetupRoutes(
 	testimonialHandler *handlers.TestimonialHandler,
 	memberHandler *handlers.MemberHandler,
 	aboutHandler *handlers.AboutHandler,
+	siteSettingHandler *handlers.SiteSettingHandler,
+	contactHandler *handlers.ContactHandler,
+	publicAboutHandler *handlers.PublicAboutHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -61,6 +64,11 @@ func SetupRoutes(
 			auth.POST("/change-password", middleware.AuthMiddleware(), authHandler.ChangePassword)
 		}
 
+		// Public Routes - About Page (No Authentication Required)
+		v1.GET("/about", publicAboutHandler.GetAboutPage)                               // GET /v1/about
+		v1.GET("/about/departments", publicAboutHandler.GetDepartments)                 // GET /v1/about/departments
+		v1.GET("/about/members/:department", publicAboutHandler.GetMembersByDepartment) // GET /v1/about/members/:department
+
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
 		adminRoutes.Use(middleware.AuthMiddleware(), middleware.RequireRole("1"))
@@ -91,6 +99,14 @@ func SetupRoutes(
 			// About Routes - Admin Only (singleton - only GET and PUT)
 			adminRoutes.GET("/about", aboutHandler.Get)    // GET /v1/admin/about
 			adminRoutes.PUT("/about", aboutHandler.Update) // PUT /v1/admin/about
+
+			// Site Settings Routes - Admin Only (singleton - only GET and PUT)
+			adminRoutes.GET("/settings", siteSettingHandler.Get)    // GET /v1/admin/settings
+			adminRoutes.PUT("/settings", siteSettingHandler.Update) // PUT /v1/admin/settings
+
+			// Contact Routes - Admin Only (singleton - only GET and PUT)
+			adminRoutes.GET("/contact", contactHandler.Get)    // GET /v1/admin/contact
+			adminRoutes.PUT("/contact", contactHandler.Update) // PUT /v1/admin/contact
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
