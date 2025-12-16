@@ -12,6 +12,9 @@ type MemberRepository interface {
 	FindByID(id int) (*domain.Member, error)
 	Update(member *domain.Member) error
 	Delete(id int) error
+	// Public methods
+	FindActiveWithPagination(page, limit int, search string) ([]domain.Member, int64, error)
+	FindActiveByDepartment(department string, page, limit int, search string) ([]domain.Member, int64, error)
 }
 
 type memberRepository struct {
@@ -53,4 +56,56 @@ func (r *memberRepository) Update(member *domain.Member) error {
 // Delete menghapus member (hard delete)
 func (r *memberRepository) Delete(id int) error {
 	return r.db.Delete(&domain.Member{}, id).Error
+}
+
+// FindActiveWithPagination mengambil member aktif dengan pagination dan search
+func (r *memberRepository) FindActiveWithPagination(page, limit int, search string) ([]domain.Member, int64, error) {
+	var members []domain.Member
+	var total int64
+
+	query := r.db.Model(&domain.Member{}).Where("is_active = ?", true)
+
+	// Search by name or position
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where("full_name ILIKE ? OR position ILIKE ?", searchPattern, searchPattern)
+	}
+
+	// Count total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	// Get paginated data
+	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&members).Error
+	return members, total, err
+}
+
+// FindActiveByDepartment mengambil member aktif berdasarkan department dengan pagination
+func (r *memberRepository) FindActiveByDepartment(department string, page, limit int, search string) ([]domain.Member, int64, error) {
+	var members []domain.Member
+	var total int64
+
+	query := r.db.Model(&domain.Member{}).Where("is_active = ? AND department = ?", true, department)
+
+	// Search by name or position
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where("full_name ILIKE ? OR position ILIKE ?", searchPattern, searchPattern)
+	}
+
+	// Count total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Calculate offset
+	offset := (page - 1) * limit
+
+	// Get paginated data
+	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&members).Error
+	return members, total, err
 }

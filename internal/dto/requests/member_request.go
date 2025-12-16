@@ -4,6 +4,7 @@ package requests
 type CreateMemberRequest struct {
 	FullName    string         `form:"full_name" binding:"required"`
 	Position    string         `form:"position" binding:"required"`
+	Department  string         `form:"department" binding:"required,oneof=pengurus_harian kabid wasekbid wakil_bendahara"`
 	SocialLinks map[string]any `form:"social_links"` // Will handle as JSON
 	// Photo akan dihandle terpisah menggunakan c.FormFile("photo")
 }
@@ -12,6 +13,7 @@ type CreateMemberRequest struct {
 type UpdateMemberRequest struct {
 	FullName    string         `form:"full_name"`
 	Position    string         `form:"position"`
+	Department  string         `form:"department" binding:"omitempty,oneof=pengurus_harian kabid wasekbid wakil_bendahara"`
 	SocialLinks map[string]any `form:"social_links"` // Will handle as JSON
 	IsActive    *bool          `form:"is_active"`
 	// Photo akan dihandle terpisah menggunakan c.FormFile("photo")

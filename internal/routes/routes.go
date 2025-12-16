@@ -18,6 +18,7 @@ func SetupRoutes(
 	testimonialHandler *handlers.TestimonialHandler,
 	memberHandler *handlers.MemberHandler,
 	aboutHandler *handlers.AboutHandler,
+	publicAboutHandler *handlers.PublicAboutHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -57,6 +58,11 @@ func SetupRoutes(
 			// Logout (butuh auth)
 			auth.POST("/logout", middleware.AuthMiddleware(), authHandler.Logout)
 		}
+
+		// Public Routes - About Page (No Authentication Required)
+		v1.GET("/about", publicAboutHandler.GetAboutPage)                               // GET /v1/about
+		v1.GET("/about/departments", publicAboutHandler.GetDepartments)                 // GET /v1/about/departments
+		v1.GET("/about/members/:department", publicAboutHandler.GetMembersByDepartment) // GET /v1/about/members/:department
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
