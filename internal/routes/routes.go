@@ -100,5 +100,45 @@ func SetupRoutes(
 			// GET /v1/users/me - Get own profile
 			userRoutes.GET("/me", userHandler.GetMyProfile)
 		}
+
+		posts := v1.Group("/posts")
+		{
+			posts.POST("", handlers.CreatePost)       // Create
+			posts.GET("", handlers.GetPosts)          // Read All
+			posts.GET("/:id", handlers.GetPost)       // Read One
+			posts.PUT("/:id", handlers.UpdatePost)    // Update
+			posts.DELETE("/:id", handlers.DeletePost) // Delete
+		}
+		categories := v1.Group("/categories")
+		{
+			// Create (POST /v1/categories)
+			categories.POST("", handlers.CreateCategory)
+
+			// Read All (GET /v1/categories)
+			categories.GET("", handlers.GetCategories)
+
+			// Update (PUT /v1/categories/:id) -> Jika ingin pakai
+			categories.PUT("/:id", handlers.UpdateCategory)
+
+			// Delete (DELETE /v1/categories/:id)
+			categories.DELETE("/:id", handlers.DeleteCategory)
+		}
+
+		tags := v1.Group("/tags")
+		{
+			// Create (POST /v1/tags)
+			tags.POST("", handlers.CreateTag)
+
+			// Read All (GET /v1/tags)
+			tags.GET("", handlers.GetTags)
+
+			// Update (PUT /v1/tags/:id)
+			tags.PUT("/:id", handlers.UpdateTag)
+
+			// Delete (DELETE /v1/tags/:id)
+			tags.DELETE("/:id", handlers.DeleteTag)
+		}
+
 	}
+
 }

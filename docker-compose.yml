@@ -39,13 +39,12 @@ services:
     networks:
       - pmii-network
 
+
   # pgAdmin auto connect to PostgreSQL
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pmii-pgadmin
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
