@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
 	"github.com/garuda-labs-1/pmii-be/pkg/utils"
 )
@@ -13,6 +14,7 @@ import (
 type AuthService interface {
 	Login(email, password string) (*domain.User, string, error)
 	Logout(token string) error
+	ChangePassword(userID int, req requests.ChangePasswordRequest) error
 }
 
 type authService struct {
@@ -63,4 +65,31 @@ func (s *authService) Logout(token string) error {
 	utils.AddToBlacklist(token, claims.ExpiresAt.Time)
 
 	return nil
+}
+
+func (s *authService) ChangePassword(userID int, req requests.ChangePasswordRequest) error {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return errors.New("user tidak ditemukan")
+	}
+
+	if !user.IsActive {
+		return errors.New("user tidak aktif")
+	}
+
+	if !utils.CheckPasswordHash(req.OldPassword, user.PasswordHash) {
+		return errors.New("password lama salah")
+	}
+
+	if req.OldPassword == req.NewPassword {
+		return errors.New("password baru tidak boleh sama dengan password lama")
+	}
+
+	newHash, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = newHash
+	return s.userRepo.Update(user)
 }
