@@ -18,6 +18,8 @@ func SetupRoutes(
 	testimonialHandler *handlers.TestimonialHandler,
 	memberHandler *handlers.MemberHandler,
 	aboutHandler *handlers.AboutHandler,
+	siteSettingHandler *handlers.SiteSettingHandler,
+	contactHandler *handlers.ContactHandler,
 	publicAboutHandler *handlers.PublicAboutHandler,
 	allowedOrigins string,
 	environment string,
@@ -91,6 +93,14 @@ func SetupRoutes(
 			// About Routes - Admin Only (singleton - only GET and PUT)
 			adminRoutes.GET("/about", aboutHandler.Get)    // GET /v1/admin/about
 			adminRoutes.PUT("/about", aboutHandler.Update) // PUT /v1/admin/about
+
+			// Site Settings Routes - Admin Only (singleton - only GET and PUT)
+			adminRoutes.GET("/settings", siteSettingHandler.Get)    // GET /v1/admin/settings
+			adminRoutes.PUT("/settings", siteSettingHandler.Update) // PUT /v1/admin/settings
+
+			// Contact Routes - Admin Only (singleton - only GET and PUT)
+			adminRoutes.GET("/contact", contactHandler.Get)    // GET /v1/admin/contact
+			adminRoutes.PUT("/contact", contactHandler.Update) // PUT /v1/admin/contact
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)

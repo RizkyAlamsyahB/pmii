@@ -17,6 +17,7 @@ type PublicAboutService interface {
 type publicAboutService struct {
 	aboutRepo         repository.AboutRepository
 	memberRepo        repository.MemberRepository
+	contactRepo       repository.ContactRepository
 	cloudinaryService CloudinaryService
 }
 
@@ -24,16 +25,18 @@ type publicAboutService struct {
 func NewPublicAboutService(
 	aboutRepo repository.AboutRepository,
 	memberRepo repository.MemberRepository,
+	contactRepo repository.ContactRepository,
 	cloudinaryService CloudinaryService,
 ) PublicAboutService {
 	return &publicAboutService{
 		aboutRepo:         aboutRepo,
 		memberRepo:        memberRepo,
+		contactRepo:       contactRepo,
 		cloudinaryService: cloudinaryService,
 	}
 }
 
-// GetAboutPage mengambil data about page lengkap dengan members per department
+// GetAboutPage mengambil data about page lengkap dengan members per department dan contact
 func (s *publicAboutService) GetAboutPage(ctx context.Context, limit int, search string) (*responses.PublicAboutPageResponse, error) {
 	// Set default limit
 	if limit < 1 {
@@ -42,6 +45,9 @@ func (s *publicAboutService) GetAboutPage(ctx context.Context, limit int, search
 
 	// Get about data
 	about, _ := s.aboutRepo.Get() // Ignore error, return empty if not found
+
+	// Get contact data
+	contact, _ := s.contactRepo.Get() // Ignore error, return empty if not found
 
 	// Build departments response
 	departments := make([]responses.DepartmentMembersResponse, 0, 4)
@@ -74,6 +80,7 @@ func (s *publicAboutService) GetAboutPage(ctx context.Context, limit int, search
 	response := &responses.PublicAboutPageResponse{
 		About:       s.toPublicAboutResponse(about),
 		Departments: departments,
+		Contact:     s.toPublicContactResponse(contact),
 	}
 
 	return response, nil
@@ -163,5 +170,19 @@ func (s *publicAboutService) toPublicMembersResponse(members []domain.Member, pa
 			Total:    total,
 			LastPage: lastPage,
 		},
+	}
+}
+
+// toPublicContactResponse converts domain.Contact to PublicContactResponse
+func (s *publicAboutService) toPublicContactResponse(c *domain.Contact) responses.PublicContactResponse {
+	if c == nil {
+		return responses.PublicContactResponse{}
+	}
+
+	return responses.PublicContactResponse{
+		Address:       c.Address,
+		Email:         c.Email,
+		Phone:         c.Phone,
+		GoogleMapsURL: c.GoogleMapsURL,
 	}
 }

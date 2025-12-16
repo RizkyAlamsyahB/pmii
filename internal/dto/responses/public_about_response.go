@@ -3,10 +3,11 @@ package responses
 import "time"
 
 // PublicAboutPageResponse adalah response untuk halaman About publik
-// Menggabungkan data About dan Members per department
+// Menggabungkan data About, Members per department, dan Contact
 type PublicAboutPageResponse struct {
 	About       PublicAboutResponse         `json:"about"`
 	Departments []DepartmentMembersResponse `json:"departments"`
+	Contact     PublicContactResponse       `json:"contact"`
 }
 
 // PublicAboutResponse adalah data about untuk public

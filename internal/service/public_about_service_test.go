@@ -68,6 +68,26 @@ func (m *MockPublicMemberRepository) FindActiveByDepartment(department string, p
 	return nil, 0, errors.New("mock not configured")
 }
 
+// MockContactRepository adalah mock untuk ContactRepository
+type MockContactRepository struct {
+	GetFunc    func() (*domain.Contact, error)
+	UpdateFunc func(contact *domain.Contact) error
+}
+
+func (m *MockContactRepository) Get() (*domain.Contact, error) {
+	if m.GetFunc != nil {
+		return m.GetFunc()
+	}
+	return nil, errors.New("mock not configured")
+}
+
+func (m *MockContactRepository) Update(contact *domain.Contact) error {
+	if m.UpdateFunc != nil {
+		return m.UpdateFunc(contact)
+	}
+	return errors.New("mock not configured")
+}
+
 // ==================== GET ABOUT PAGE TESTS ====================
 
 // Test: GetAboutPage berhasil dengan data lengkap
@@ -77,6 +97,8 @@ func TestPublicAboutGetAboutPage_Success(t *testing.T) {
 	mission := "Misi PMII"
 	imageURI := "about.jpg"
 	photoURI := "member.jpg"
+	address := "Jl. Test No. 123"
+	email := "contact@pmii.id"
 
 	mockAboutRepo := &MockAboutRepository{
 		GetFunc: func() (*domain.About, error) {
@@ -106,7 +128,17 @@ func TestPublicAboutGetAboutPage_Success(t *testing.T) {
 		},
 	}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	mockContactRepo := &MockContactRepository{
+		GetFunc: func() (*domain.Contact, error) {
+			return &domain.Contact{
+				ID:      1,
+				Address: &address,
+				Email:   &email,
+			}, nil
+		},
+	}
+
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockContactRepo, mockCloudinary)
 	result, err := service.GetAboutPage(context.Background(), 8, "")
 
 	if err != nil {
@@ -155,7 +187,7 @@ func TestPublicAboutGetAboutPage_NoAboutData(t *testing.T) {
 		},
 	}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	result, err := service.GetAboutPage(context.Background(), 8, "")
 
 	if err != nil {
@@ -197,7 +229,7 @@ func TestPublicAboutGetAboutPage_WithSearch(t *testing.T) {
 		},
 	}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	result, err := service.GetAboutPage(context.Background(), 8, searchQuery)
 
 	if err != nil {
@@ -224,7 +256,7 @@ func TestPublicAboutGetAboutPage_MemberRepoError(t *testing.T) {
 
 	mockCloudinary := &MockAboutCloudinaryService{}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	result, err := service.GetAboutPage(context.Background(), 8, "")
 
 	// Should NOT error - continues gracefully with empty departments
@@ -266,7 +298,7 @@ func TestPublicAboutGetMembersByDepartment_Success(t *testing.T) {
 		},
 	}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	members, page, lastPage, total, err := service.GetMembersByDepartment(context.Background(), string(dept), 1, 8, "")
 
 	if err != nil {
@@ -311,7 +343,7 @@ func TestPublicAboutGetMembersByDepartment_WithSearch(t *testing.T) {
 		},
 	}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	members, _, _, _, err := service.GetMembersByDepartment(context.Background(), string(dept), 1, 8, "Ketua")
 
 	if err != nil {
@@ -345,7 +377,7 @@ func TestPublicAboutGetMembersByDepartment_DefaultPagination(t *testing.T) {
 		},
 	}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	_, page, lastPage, _, err := service.GetMembersByDepartment(context.Background(), string(dept), 0, 0, "") // Invalid values should use defaults
 
 	if err != nil {
@@ -372,7 +404,7 @@ func TestPublicAboutGetMembersByDepartment_Error(t *testing.T) {
 
 	mockCloudinary := &MockAboutCloudinaryService{}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	_, _, _, _, err := service.GetMembersByDepartment(context.Background(), string(dept), 1, 8, "")
 
 	if err == nil {
@@ -400,7 +432,7 @@ func TestPublicAboutGetMembersByDepartment_PaginationCalculation(t *testing.T) {
 		},
 	}
 
-	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, mockCloudinary)
+	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	_, page, lastPage, total, err := service.GetMembersByDepartment(context.Background(), string(dept), 3, 8, "")
 
 	if err != nil {
