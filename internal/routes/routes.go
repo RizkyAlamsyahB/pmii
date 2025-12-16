@@ -17,6 +17,7 @@ func SetupRoutes(
 	userHandler *handlers.UserHandler,
 	testimonialHandler *handlers.TestimonialHandler,
 	memberHandler *handlers.MemberHandler,
+	aboutHandler *handlers.AboutHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -84,6 +85,9 @@ func SetupRoutes(
 			adminRoutes.POST("/users", userHandler.CreateUser)           // POST /v1/admin/users
 			adminRoutes.PUT("/users/:id", userHandler.UpdateUserByID)    // PUT /v1/admin/users/:id
 			adminRoutes.DELETE("/users/:id", userHandler.DeleteUserByID) // DELETE /v1/admin/users/:id
+			// About Routes - Admin Only (singleton - only GET and PUT)
+			adminRoutes.GET("/about", aboutHandler.Get)    // GET /v1/admin/about
+			adminRoutes.PUT("/about", aboutHandler.Update) // PUT /v1/admin/about
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
