@@ -1,6 +1,5 @@
 package handlers
 
-import "strconv"
 
 // getRoleName convert role code ke nama role
 func getRoleName(role int) string {
@@ -22,7 +21,4 @@ func getStatusName(isActive bool) string {
 	return "inactive"
 }
 
-// getRoleString convert int role to string for JWT (keeps numeric values)
-func getRoleString(role int) string {
-	return strconv.Itoa(role)
-}
+

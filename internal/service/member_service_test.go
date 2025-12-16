@@ -12,11 +12,13 @@ import (
 
 // MockMemberRepository adalah mock untuk MemberRepository
 type MockMemberRepository struct {
-	CreateFunc   func(member *domain.Member) error
-	FindAllFunc  func(page, limit int) ([]domain.Member, int64, error)
-	FindByIDFunc func(id int) (*domain.Member, error)
-	UpdateFunc   func(member *domain.Member) error
-	DeleteFunc   func(id int) error
+	CreateFunc                   func(member *domain.Member) error
+	FindAllFunc                  func(page, limit int) ([]domain.Member, int64, error)
+	FindByIDFunc                 func(id int) (*domain.Member, error)
+	UpdateFunc                   func(member *domain.Member) error
+	DeleteFunc                   func(id int) error
+	FindActiveWithPaginationFunc func(page, limit int, search string) ([]domain.Member, int64, error)
+	FindActiveByDepartmentFunc   func(department string, page, limit int, search string) ([]domain.Member, int64, error)
 }
 
 func (m *MockMemberRepository) Create(member *domain.Member) error {
@@ -52,6 +54,20 @@ func (m *MockMemberRepository) Delete(id int) error {
 		return m.DeleteFunc(id)
 	}
 	return errors.New("mock not configured")
+}
+
+func (m *MockMemberRepository) FindActiveWithPagination(page, limit int, search string) ([]domain.Member, int64, error) {
+	if m.FindActiveWithPaginationFunc != nil {
+		return m.FindActiveWithPaginationFunc(page, limit, search)
+	}
+	return nil, 0, errors.New("mock not configured")
+}
+
+func (m *MockMemberRepository) FindActiveByDepartment(department string, page, limit int, search string) ([]domain.Member, int64, error) {
+	if m.FindActiveByDepartmentFunc != nil {
+		return m.FindActiveByDepartmentFunc(department, page, limit, search)
+	}
+	return nil, 0, errors.New("mock not configured")
 }
 
 // ==================== CREATE TESTS ====================

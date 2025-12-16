@@ -140,7 +140,7 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 	if req.Department != "" {
 		member.Department = domain.MemberDepartment(req.Department)
 	}
-	if req.SocialLinks != nil && len(req.SocialLinks) > 0 {
+	if len(req.SocialLinks) > 0 {
 		member.SocialLinks = req.SocialLinks
 	}
 	if req.IsActive != nil {
