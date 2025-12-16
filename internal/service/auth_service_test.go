@@ -24,7 +24,9 @@ func (m *MockUserRepository) Create(user *domain.User) error        { return nil
 func (m *MockUserRepository) Update(user *domain.User) error        { return nil }
 func (m *MockUserRepository) Delete(id int) error                   { return nil }
 func (m *MockUserRepository) FindByID(id int) (*domain.User, error) { return nil, nil }
-func (m *MockUserRepository) FindAll() ([]domain.User, error)       { return nil, nil }
+func (m *MockUserRepository) FindAll(page, limit int) ([]domain.User, int64, error) {
+	return nil, 0, nil
+}
 
 // TestLogin_UserNotFound menguji login dengan email yang tidak terdaftar
 func TestLogin_UserNotFound(t *testing.T) {

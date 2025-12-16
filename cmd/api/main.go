@@ -73,7 +73,7 @@ func main() {
 
 	// 7. Initialize Services (Business Logic Layer)
 	authService := service.NewAuthService(userRepo)
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, cloudinaryService)
 	testimonialService := service.NewTestimonialService(testimonialRepo, cloudinaryService)
 	memberService := service.NewMemberService(memberRepo, cloudinaryService)
 	aboutService := service.NewAboutService(aboutRepo, cloudinaryService)
