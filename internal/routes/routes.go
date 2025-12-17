@@ -5,6 +5,8 @@ import (
 
 	"github.com/garuda-labs-1/pmii-be/internal/handlers"
 	"github.com/garuda-labs-1/pmii-be/internal/middleware"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/internal/service"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
@@ -24,6 +26,12 @@ func SetupRoutes(
 	allowedOrigins string,
 	environment string,
 ) {
+
+	// Inisialisasi Dependency untuk News Publik
+	newsRepo := repository.NewNewsRepository()
+	newsSvc := service.NewNewsService(newsRepo)
+	newsHandler := handlers.NewNewsHandler(newsSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
@@ -63,6 +71,9 @@ func SetupRoutes(
 			// Ubah/ganti password
 			auth.POST("/change-password", middleware.AuthMiddleware(), authHandler.ChangePassword)
 		}
+
+		v1.GET("/news", newsHandler.GetNewsList)         // GET /v1/news
+		v1.GET("/news/:slug", newsHandler.GetNewsDetail) // GET /v1/news/:slug
 
 		// Public Routes - About Page (No Authentication Required)
 		v1.GET("/about", publicAboutHandler.GetAboutPage)                               // GET /v1/about
