@@ -13,9 +13,15 @@ import (
 
 // CloudinaryService interface untuk operasi cloudinary
 type CloudinaryService interface {
+	// Image-specific methods (for backward compatibility)
 	UploadImage(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
 	DeleteImage(ctx context.Context, folder string, filename string) error
 	GetImageURL(folder string, filename string) string
+	// Generic file methods (auto-detect resource type: image/video/raw)
+	UploadFile(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteFile(ctx context.Context, folder string, filename string) error
+	GetFileURL(folder string, filename string) string
+	GetDownloadURL(folder string, filename string) string
 }
 
 // TestimonialService interface untuk business logic testimonial
