@@ -92,7 +92,7 @@ func main() {
 	siteSettingService := service.NewSiteSettingService(siteSettingRepo, cloudinaryService)
 	contactService := service.NewContactService(contactRepo)
 	publicAboutService := service.NewPublicAboutService(aboutRepo, memberRepo, contactRepo, cloudinaryService)
-	publicHomeService := service.NewPublicHomeService(homeRepo, cloudinaryService)
+	publicHomeService := service.NewPublicHomeService(homeRepo, testimonialRepo, cloudinaryService)
 
 	// 8. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)

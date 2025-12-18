@@ -33,3 +33,11 @@ type WhySectionResponse struct {
 	Description *string             `json:"description"`
 	Data        []map[string]string `json:"data"`
 }
+
+type TestimonialSectionResponse struct {
+	Testimoni string `json:"testimoni"`
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	Career    string `json:"career"`
+	ImageURI  string `json:"image_uri"`
+}

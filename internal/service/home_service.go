@@ -11,17 +11,20 @@ type HomeService interface {
 	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
 	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
 	GetWhySection() (*responses.WhySectionResponse, error)
+	GetTestimonialSection() ([]responses.TestimonialSectionResponse, error)
 }
 
 type homeService struct {
-	homeRepository    repository.HomeRepository
-	cloudinaryService CloudinaryService
+	homeRepository        repository.HomeRepository
+	testimonialRepository repository.TestimonialRepository
+	cloudinaryService     CloudinaryService
 }
 
-func NewPublicHomeService(homeRepository repository.HomeRepository, cloudinaryService CloudinaryService) HomeService {
+func NewPublicHomeService(homeRepository repository.HomeRepository, testimonialRepository repository.TestimonialRepository, cloudinaryService CloudinaryService) HomeService {
 	return &homeService{
-		homeRepository:    homeRepository,
-		cloudinaryService: cloudinaryService,
+		homeRepository:        homeRepository,
+		testimonialRepository: testimonialRepository,
+		cloudinaryService:     cloudinaryService,
 	}
 }
 
@@ -85,4 +88,42 @@ func (s *homeService) GetWhySection() (*responses.WhySectionResponse, error) {
 	}
 
 	return whySection, nil
+}
+
+func (s *homeService) GetTestimonialSection() ([]responses.TestimonialSectionResponse, error) {
+	testimonials, _, err := s.testimonialRepository.FindAll(1, 4)
+	if err != nil {
+		logger.Error.Printf("Failed to get testimonial section from repository: %v", err)
+		return nil, err
+	}
+
+	var result []responses.TestimonialSectionResponse
+	for _, testimonial := range testimonials {
+		item := responses.TestimonialSectionResponse{
+			Testimoni: testimonial.Content,
+			Name:      testimonial.Name,
+		}
+
+		// Nil check for Position field
+		if testimonial.Position != nil {
+			item.Status = *testimonial.Position
+		} else {
+			item.Status = ""
+		}
+
+		if testimonial.Organization != nil {
+			item.Career = *testimonial.Organization
+		} else {
+			item.Career = ""
+		}
+
+		// Nil check for PhotoURI field
+		if testimonial.PhotoURI != nil {
+			item.ImageURI = s.cloudinaryService.GetImageURL("home/images", *testimonial.PhotoURI)
+		}
+
+		result = append(result, item)
+	}
+
+	return result, nil
 }

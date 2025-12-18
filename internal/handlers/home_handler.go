@@ -57,3 +57,13 @@ func (h *PublicHomeHandler) GetWhySection(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data why section", whySection))
 }
+
+func (h *PublicHomeHandler) GetTestimonialSection(c *gin.Context) {
+	testimonialSection, err := h.homeService.GetTestimonialSection()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(http.StatusInternalServerError, "Gagal mengambil data testimonial section"))
+		return
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data testimonial section", testimonialSection))
+}
