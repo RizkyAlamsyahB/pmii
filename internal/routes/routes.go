@@ -5,6 +5,8 @@ import (
 
 	"github.com/garuda-labs-1/pmii-be/internal/handlers"
 	"github.com/garuda-labs-1/pmii-be/internal/middleware"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/internal/service"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
@@ -24,6 +26,12 @@ func SetupRoutes(
 	allowedOrigins string,
 	environment string,
 ) {
+
+	// --- Inisialisasi Modul Post (Clean Architecture) ---
+	postRepo := repository.NewPostRepository()
+	postSvc := service.NewPostService(postRepo)
+	postHandler := handlers.NewPostHandler(postSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
@@ -119,12 +127,13 @@ func SetupRoutes(
 
 		posts := v1.Group("/posts")
 		{
-			posts.POST("", handlers.CreatePost)       // Create
-			posts.GET("", handlers.GetPosts)          // Read All
-			posts.GET("/:id", handlers.GetPost)       // Read One
-			posts.PUT("/:id", handlers.UpdatePost)    // Update
-			posts.DELETE("/:id", handlers.DeletePost) // Delete
+			posts.GET("", postHandler.GetPosts)
+			posts.POST("", postHandler.CreatePost)
+			posts.GET("/:id", postHandler.GetPost)
+			posts.PUT("/:id", postHandler.UpdatePost)
+			posts.DELETE("/:id", postHandler.DeletePost)
 		}
+
 		categories := v1.Group("/categories")
 		{
 			// Create (POST /v1/categories)
