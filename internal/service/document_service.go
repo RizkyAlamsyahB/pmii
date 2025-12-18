@@ -11,7 +11,7 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
 )
 
-// DocumentService interface untuk business logic document
+// DocumentService interface untuk business logic document (admin)
 type DocumentService interface {
 	Create(ctx context.Context, req requests.CreateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
 	GetAll(ctx context.Context, page, limit int, fileType string) ([]responses.DocumentResponse, int, int, int64, error)
@@ -19,9 +19,6 @@ type DocumentService interface {
 	Update(ctx context.Context, id int, req requests.UpdateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
 	Delete(ctx context.Context, id int) error
 	GetDocumentTypes() []responses.DocumentTypeInfo
-	// Public methods
-	GetAllPublic(ctx context.Context) ([]responses.PublicDocumentGroupResponse, error)
-	GetByTypePublic(ctx context.Context, fileType string) (*responses.PublicDocumentGroupResponse, error)
 }
 
 type documentService struct {
@@ -207,62 +204,11 @@ func (s *documentService) GetDocumentTypes() []responses.DocumentTypeInfo {
 	return result
 }
 
-// GetAllPublic mengambil semua document aktif grouped by type (untuk public)
-func (s *documentService) GetAllPublic(ctx context.Context) ([]responses.PublicDocumentGroupResponse, error) {
-	result := make([]responses.PublicDocumentGroupResponse, 0, 3)
-
-	// Iterate through all document types
-	for _, docType := range domain.ValidDocumentTypes() {
-		documents, err := s.documentRepo.FindActiveByType(string(docType))
-		if err != nil {
-			continue // Skip on error
-		}
-
-		// Convert to public response
-		publicDocs := make([]responses.PublicDocumentResponse, len(documents))
-		for i, d := range documents {
-			publicDocs[i] = s.toPublicResponseDTO(&d)
-		}
-
-		result = append(result, responses.PublicDocumentGroupResponse{
-			FileType:      string(docType),
-			FileTypeLabel: docType.GetLabel(),
-			Documents:     publicDocs,
-		})
-	}
-
-	return result, nil
-}
-
-// GetByTypePublic mengambil document aktif berdasarkan type (untuk public)
-func (s *documentService) GetByTypePublic(ctx context.Context, fileType string) (*responses.PublicDocumentGroupResponse, error) {
-	docType := domain.DocumentType(fileType)
-	if !docType.IsValid() {
-		return nil, errors.New("jenis file tidak valid")
-	}
-
-	documents, err := s.documentRepo.FindActiveByType(fileType)
-	if err != nil {
-		return nil, errors.New("gagal mengambil data dokumen")
-	}
-
-	// Convert to public response
-	publicDocs := make([]responses.PublicDocumentResponse, len(documents))
-	for i, d := range documents {
-		publicDocs[i] = s.toPublicResponseDTO(&d)
-	}
-
-	return &responses.PublicDocumentGroupResponse{
-		FileType:      string(docType),
-		FileTypeLabel: docType.GetLabel(),
-		Documents:     publicDocs,
-	}, nil
-}
-
 // toResponseDTO converts domain.Document to responses.DocumentResponse
+// Uses GetDownloadURL for direct download
 func (s *documentService) toResponseDTO(d *domain.Document) *responses.DocumentResponse {
 	folder := d.FileType.GetCloudinaryFolder()
-	fileURL := s.cloudinaryService.GetFileURL(folder, d.FileURI)
+	fileURL := s.cloudinaryService.GetDownloadURL(folder, d.FileURI)
 
 	return &responses.DocumentResponse{
 		ID:            d.ID,
@@ -272,17 +218,5 @@ func (s *documentService) toResponseDTO(d *domain.Document) *responses.DocumentR
 		FileURL:       fileURL,
 		CreatedAt:     d.CreatedAt,
 		UpdatedAt:     d.UpdatedAt,
-	}
-}
-
-// toPublicResponseDTO converts domain.Document to responses.PublicDocumentResponse
-func (s *documentService) toPublicResponseDTO(d *domain.Document) responses.PublicDocumentResponse {
-	folder := d.FileType.GetCloudinaryFolder()
-	fileURL := s.cloudinaryService.GetFileURL(folder, d.FileURI)
-
-	return responses.PublicDocumentResponse{
-		ID:      d.ID,
-		Name:    d.Name,
-		FileURL: fileURL,
 	}
 }

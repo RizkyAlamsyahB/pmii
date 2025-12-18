@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
@@ -22,6 +24,10 @@ func NewDocumentHandler(documentService service.DocumentService) *DocumentHandle
 
 // Create handles POST /v1/admin/documents
 func (h *DocumentHandler) Create(c *gin.Context) {
+	// Set timeout 30 menit untuk upload file besar
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Minute)
+	defer cancel()
+
 	var req requests.CreateDocumentRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Nama dan jenis file wajib diisi"))
@@ -35,7 +41,7 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 		return
 	}
 
-	result, err := h.documentService.Create(c.Request.Context(), req, file)
+	result, err := h.documentService.Create(ctx, req, file)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
 		return
@@ -78,6 +84,10 @@ func (h *DocumentHandler) GetByID(c *gin.Context) {
 
 // Update handles PUT /v1/admin/documents/:id
 func (h *DocumentHandler) Update(c *gin.Context) {
+	// Set timeout 2 menit untuk upload file besar
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Minute)
+	defer cancel()
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "ID tidak valid"))
@@ -93,7 +103,7 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 	// Get optional file from form
 	file, _ := c.FormFile("file")
 
-	result, err := h.documentService.Update(c.Request.Context(), id, req, file)
+	result, err := h.documentService.Update(ctx, id, req, file)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
 		return
@@ -122,30 +132,4 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 func (h *DocumentHandler) GetTypes(c *gin.Context) {
 	types := h.documentService.GetDocumentTypes()
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "List of document types", types))
-}
-
-// ==================== PUBLIC HANDLERS ====================
-
-// GetAllPublic handles GET /v1/documents (public)
-func (h *DocumentHandler) GetAllPublic(c *gin.Context) {
-	result, err := h.documentService.GetAllPublic(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengambil data dokumen"))
-		return
-	}
-
-	c.JSON(http.StatusOK, responses.SuccessResponse(200, "File Download", result))
-}
-
-// GetByTypePublic handles GET /v1/documents/:type (public)
-func (h *DocumentHandler) GetByTypePublic(c *gin.Context) {
-	fileType := c.Param("type")
-
-	result, err := h.documentService.GetByTypePublic(c.Request.Context(), fileType)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
-		return
-	}
-
-	c.JSON(http.StatusOK, responses.SuccessResponse(200, "List of "+result.FileTypeLabel, result))
 }

@@ -22,6 +22,7 @@ func SetupRoutes(
 	contactHandler *handlers.ContactHandler,
 	publicAboutHandler *handlers.PublicAboutHandler,
 	documentHandler *handlers.DocumentHandler,
+	publicDocumentHandler *handlers.PublicDocumentHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -71,8 +72,8 @@ func SetupRoutes(
 		v1.GET("/about/members/:department", publicAboutHandler.GetMembersByDepartment) // GET /v1/about/members/:department
 
 		// Public Routes - Documents/File Download (No Authentication Required)
-		v1.GET("/documents", documentHandler.GetAllPublic)          // GET /v1/documents
-		v1.GET("/documents/:type", documentHandler.GetByTypePublic) // GET /v1/documents/:type
+		v1.GET("/documents", publicDocumentHandler.GetAllPublic)          // GET /v1/documents
+		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic) // GET /v1/documents/:type
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
