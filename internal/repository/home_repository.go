@@ -7,6 +7,7 @@ import (
 
 type HomeRepository interface {
 	GetHeroSection() ([]responses.HeroSectionResponse, error)
+	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
 }
 
 type homeRepository struct {
@@ -45,4 +46,36 @@ func (r *homeRepository) GetHeroSection() ([]responses.HeroSectionResponse, erro
 
 	// Returns posts slice (can be empty []) with no error
 	return posts, nil
+}
+
+func (r *homeRepository) GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error) {
+	var news []responses.LatestNewsSectionResponse
+
+	// Query only published posts for latest news section
+	// GORM returns empty slice [] if no data found (not an error)
+	err := r.db.Table("posts").
+		Select(`
+			posts.id,
+			posts.title,
+			posts.featured_image,
+			posts.created_at,
+			posts.updated_at,
+			COUNT(post_views.id) AS total_views
+		`).
+		Where("posts.status = ?", "published").
+		Joins("LEFT JOIN post_views ON post_views.post_id = posts.id").
+		Joins("INNER JOIN categories ON categories.id = posts.category_id").
+		Where("categories.slug = ?", "news").
+		Group("posts.id").
+		Order("posts.created_at DESC").
+		Limit(5).
+		Find(&news).Error
+
+	if err != nil {
+		// Only database errors (connection issues, query errors, etc.)
+		return nil, err
+	}
+
+	// Returns news slice (can be empty []) with no error
+	return news, nil
 }

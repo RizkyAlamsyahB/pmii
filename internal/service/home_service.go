@@ -8,6 +8,7 @@ import (
 
 type HomeService interface {
 	GetHeroSection() ([]responses.HeroSectionResponse, error)
+	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
 }
 
 type homeService struct {
@@ -29,5 +30,27 @@ func (s *homeService) GetHeroSection() ([]responses.HeroSectionResponse, error) 
 		return nil, err
 	}
 
+	for i := range heroSection {
+		if heroSection[i].FeaturedImage != "" {
+			heroSection[i].FeaturedImage = s.cloudinaryService.GetImageURL("posts/images", heroSection[i].FeaturedImage)
+		}
+	}
+
 	return heroSection, nil
+}
+
+func (s *homeService) GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error) {
+	latestNewsSection, err := s.homeRepository.GetLatestNewsSection()
+	if err != nil {
+		logger.Error.Printf("Failed to get latest news section from repository: %v", err)
+		return nil, err
+	}
+
+	for i := range latestNewsSection {
+		if latestNewsSection[i].FeaturedImage != "" {
+			latestNewsSection[i].FeaturedImage = s.cloudinaryService.GetImageURL("posts/images", latestNewsSection[i].FeaturedImage)
+		}
+	}
+
+	return latestNewsSection, nil
 }

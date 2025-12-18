@@ -26,3 +26,14 @@ func (h *PublicHomeHandler) GetHeroSection(c *gin.Context) {
 	// Return empty array [] if no posts exist (not an error)
 	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data hero section", heroSection))
 }
+
+func (h *PublicHomeHandler) GetLatestNewsSection(c *gin.Context) {
+	latestNewsSection, err := h.homeService.GetLatestNewsSection()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(http.StatusInternalServerError, "Gagal mengambil data latest news section"))
+		return
+	}
+
+	// Return empty array [] if no posts exist (not an error)
+	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data latest news section", latestNewsSection))
+}

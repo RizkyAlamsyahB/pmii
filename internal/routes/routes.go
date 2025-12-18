@@ -71,7 +71,8 @@ func SetupRoutes(
 		v1.GET("/about/members/:department", publicAboutHandler.GetMembersByDepartment) // GET /v1/about/members/:department
 
 		// Public Routes - Home Page (No Authentication Required)
-		v1.GET("/home/hero-section", publicHomeHandler.GetHeroSection) // GET /v1/home/hero-section
+		v1.GET("/home/hero-section", publicHomeHandler.GetHeroSection)      // GET /v1/home/hero-section
+		v1.GET("/home/latest-news", publicHomeHandler.GetLatestNewsSection) // GET /v1/home/latest-news
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
