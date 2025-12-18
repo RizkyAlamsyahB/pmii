@@ -9,6 +9,7 @@ type HomeRepository interface {
 	GetHeroSection() ([]responses.HeroSectionResponse, error)
 	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
 	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
+	GetWhySection() (*responses.WhySectionResponse, error)
 }
 
 type homeRepository struct {
@@ -86,5 +87,41 @@ func (r *homeRepository) GetAboutUsSection() (*responses.AboutUsSectionResponse,
 		Subtitle:    "Tentang PMII",
 		Description: "Organisasi mahasiswa berbasis nilai keislaman dan keindonesiaan yang telah bergerak sejak 1960 untuk mencetak kader bangsa berkarakter dan berwawasan luas.",
 		ImageURI:    "about-image.jpg",
+	}, nil
+}
+
+// todo: this is temporarily hardcoded
+func (r *homeRepository) GetWhySection() (*responses.WhySectionResponse, error) {
+	var whyItem []map[string]string
+
+	whyItem = append(whyItem, map[string]string{
+		"title":       "Perkaderan Benjenjang",
+		"description": "Pembentukan karakter dan kepemimpinan.",
+		"iconURI":     "icon1.png",
+	})
+
+	whyItem = append(whyItem, map[string]string{
+		"title":       "Komunitas Nasional",
+		"description": "Hadir di berbagai kampus di Indonesia",
+		"iconURI":     "icon2.png",
+	})
+
+	whyItem = append(whyItem, map[string]string{
+		"title":       "Kegiatan Intelektual & Sosial",
+		"description": "Pelatihan, kajian, dan aksi sosial",
+		"iconURI":     "icon3.png",
+	})
+
+	whyItem = append(whyItem, map[string]string{
+		"title":       "Akses Jaringan Alumni",
+		"description": "Dukungan karier dan mentorship",
+		"iconURI":     "icon4.png",
+	})
+
+	return &responses.WhySectionResponse{
+		Title:       "Nilai dan keunggulan yang membuat PMII menjadi ruang tumbuh bagi mahasiswa",
+		Subtitle:    "Mengapa PMII?",
+		Description: nil,
+		Data:        whyItem,
 	}, nil
 }

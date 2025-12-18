@@ -10,6 +10,7 @@ type HomeService interface {
 	GetHeroSection() ([]responses.HeroSectionResponse, error)
 	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
 	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
+	GetWhySection() (*responses.WhySectionResponse, error)
 }
 
 type homeService struct {
@@ -68,4 +69,20 @@ func (s *homeService) GetAboutUsSection() (*responses.AboutUsSectionResponse, er
 	}
 
 	return aboutUsSection, nil
+}
+
+func (s *homeService) GetWhySection() (*responses.WhySectionResponse, error) {
+	whySection, err := s.homeRepository.GetWhySection()
+	if err != nil {
+		logger.Error.Printf("Failed to get why section from repository: %v", err)
+		return nil, err
+	}
+
+	for i := range whySection.Data {
+		if whySection.Data[i]["iconURI"] != "" {
+			whySection.Data[i]["iconURI"] = s.cloudinaryService.GetImageURL("why/images", whySection.Data[i]["iconURI"])
+		}
+	}
+
+	return whySection, nil
 }

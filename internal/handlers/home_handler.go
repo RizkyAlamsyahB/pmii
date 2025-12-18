@@ -47,3 +47,13 @@ func (h *PublicHomeHandler) GetAboutUsSection(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data about us section", aboutUsSection))
 }
+
+func (h *PublicHomeHandler) GetWhySection(c *gin.Context) {
+	whySection, err := h.homeService.GetWhySection()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(http.StatusInternalServerError, "Gagal mengambil data why section"))
+		return
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data why section", whySection))
+}

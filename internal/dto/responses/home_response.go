@@ -26,3 +26,10 @@ type AboutUsSectionResponse struct {
 	Description string `json:"description"`
 	ImageURI    string `json:"image_uri"`
 }
+
+type WhySectionResponse struct {
+	Title       string              `json:"title"`
+	Subtitle    string              `json:"subtitle"`
+	Description *string             `json:"description"`
+	Data        []map[string]string `json:"data"`
+}
