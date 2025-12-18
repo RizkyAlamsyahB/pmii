@@ -14,7 +14,7 @@ import (
 // DocumentService interface untuk business logic document (admin)
 type DocumentService interface {
 	Create(ctx context.Context, req requests.CreateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
-	GetAll(ctx context.Context, page, limit int, fileType string) ([]responses.DocumentResponse, int, int, int64, error)
+	GetAll(ctx context.Context, page, limit int, fileType, search string) ([]responses.DocumentResponse, int, int, int64, error)
 	GetByID(ctx context.Context, id int) (*responses.DocumentResponse, error)
 	Update(ctx context.Context, id int, req requests.UpdateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
 	Delete(ctx context.Context, id int) error
@@ -73,8 +73,8 @@ func (s *documentService) Create(ctx context.Context, req requests.CreateDocumen
 	return s.toResponseDTO(document), nil
 }
 
-// GetAll mengambil semua document dengan pagination
-func (s *documentService) GetAll(ctx context.Context, page, limit int, fileType string) ([]responses.DocumentResponse, int, int, int64, error) {
+// GetAll mengambil semua document dengan pagination dan search
+func (s *documentService) GetAll(ctx context.Context, page, limit int, fileType, search string) ([]responses.DocumentResponse, int, int, int64, error) {
 	// Set default values
 	if page < 1 {
 		page = 1
@@ -83,7 +83,7 @@ func (s *documentService) GetAll(ctx context.Context, page, limit int, fileType 
 		limit = 10
 	}
 
-	documents, total, err := s.documentRepo.FindAll(page, limit, fileType)
+	documents, total, err := s.documentRepo.FindAll(page, limit, fileType, search)
 	if err != nil {
 		return nil, 0, 0, 0, errors.New("gagal mengambil data dokumen")
 	}
@@ -95,6 +95,16 @@ func (s *documentService) GetAll(ctx context.Context, page, limit int, fileType 
 	}
 	if lastPage < 1 && total > 0 {
 		lastPage = 1
+	}
+
+	// Auto-clamp: jika page melebihi lastPage dan ada data, clamp ke lastPage
+	if page > lastPage && lastPage > 0 {
+		page = lastPage
+		// Re-fetch dengan page yang sudah di-clamp
+		documents, _, err = s.documentRepo.FindAll(page, limit, fileType, search)
+		if err != nil {
+			return nil, 0, 0, 0, errors.New("gagal mengambil data dokumen")
+		}
 	}
 
 	// Convert to response DTOs

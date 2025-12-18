@@ -55,8 +55,9 @@ func (h *DocumentHandler) GetAll(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 	fileType := c.Query("file_type")
+	search := c.Query("search")
 
-	documents, currentPage, lastPage, total, err := h.documentService.GetAll(c.Request.Context(), page, limit, fileType)
+	documents, currentPage, lastPage, total, err := h.documentService.GetAll(c.Request.Context(), page, limit, fileType, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return

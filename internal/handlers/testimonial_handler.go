@@ -58,8 +58,9 @@ func (h *TestimonialHandler) GetAll(c *gin.Context) {
 	// Parse query params
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
 
-	testimonials, currentPage, lastPage, total, err := h.testimonialService.GetAll(c.Request.Context(), page, limit)
+	testimonials, currentPage, lastPage, total, err := h.testimonialService.GetAll(c.Request.Context(), page, limit, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return

@@ -11,7 +11,7 @@ import (
 // MockPublicMemberRepository adalah mock untuk MemberRepository (public methods)
 type MockPublicMemberRepository struct {
 	CreateFunc                   func(member *domain.Member) error
-	FindAllFunc                  func(page, limit int) ([]domain.Member, int64, error)
+	FindAllFunc                  func(page, limit int, search string) ([]domain.Member, int64, error)
 	FindByIDFunc                 func(id int) (*domain.Member, error)
 	UpdateFunc                   func(member *domain.Member) error
 	DeleteFunc                   func(id int) error
@@ -26,9 +26,9 @@ func (m *MockPublicMemberRepository) Create(member *domain.Member) error {
 	return errors.New("mock not configured")
 }
 
-func (m *MockPublicMemberRepository) FindAll(page, limit int) ([]domain.Member, int64, error) {
+func (m *MockPublicMemberRepository) FindAll(page, limit int, search string) ([]domain.Member, int64, error) {
 	if m.FindAllFunc != nil {
-		return m.FindAllFunc(page, limit)
+		return m.FindAllFunc(page, limit, search)
 	}
 	return nil, 0, errors.New("mock not configured")
 }

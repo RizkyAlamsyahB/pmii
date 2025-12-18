@@ -8,7 +8,7 @@ import (
 // DocumentRepository interface untuk data access document
 type DocumentRepository interface {
 	Create(document *domain.Document) error
-	FindAll(page, limit int, fileType string) ([]domain.Document, int64, error)
+	FindAll(page, limit int, fileType, search string) ([]domain.Document, int64, error)
 	FindByID(id int) (*domain.Document, error)
 	Update(document *domain.Document) error
 	Delete(id int) error
@@ -31,8 +31,8 @@ func (r *documentRepository) Create(document *domain.Document) error {
 	return r.db.Create(document).Error
 }
 
-// FindAll mengambil semua document dengan pagination dan optional filter by type (termasuk soft deleted untuk admin)
-func (r *documentRepository) FindAll(page, limit int, fileType string) ([]domain.Document, int64, error) {
+// FindAll mengambil semua document dengan pagination, filter by type, dan search
+func (r *documentRepository) FindAll(page, limit int, fileType, search string) ([]domain.Document, int64, error) {
 	var documents []domain.Document
 	var total int64
 
@@ -41,6 +41,12 @@ func (r *documentRepository) FindAll(page, limit int, fileType string) ([]domain
 	// Filter by file type if provided
 	if fileType != "" {
 		query = query.Where("file_type = ?", fileType)
+	}
+
+	// Search by name
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where("name ILIKE ?", searchPattern)
 	}
 
 	// Count total

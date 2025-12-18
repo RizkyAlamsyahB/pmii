@@ -70,8 +70,9 @@ func (h *MemberHandler) GetAll(c *gin.Context) {
 	// Parse pagination parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
 
-	members, pageNum, lastPage, total, err := h.memberService.GetAll(c.Request.Context(), page, limit)
+	members, pageNum, lastPage, total, err := h.memberService.GetAll(c.Request.Context(), page, limit, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return

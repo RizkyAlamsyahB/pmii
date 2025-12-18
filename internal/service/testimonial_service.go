@@ -27,7 +27,7 @@ type CloudinaryService interface {
 // TestimonialService interface untuk business logic testimonial
 type TestimonialService interface {
 	Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
-	GetAll(ctx context.Context, page, limit int) ([]responses.TestimonialResponse, int, int, int64, error)
+	GetAll(ctx context.Context, page, limit int, search string) ([]responses.TestimonialResponse, int, int, int64, error)
 	GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error)
 	Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
 	Delete(ctx context.Context, id int) error
@@ -91,8 +91,8 @@ func (s *testimonialService) Create(ctx context.Context, req requests.CreateTest
 	return s.toResponseDTO(testimonial), nil
 }
 
-// GetAll mengambil semua testimonial dengan pagination
-func (s *testimonialService) GetAll(ctx context.Context, page, limit int) ([]responses.TestimonialResponse, int, int, int64, error) {
+// GetAll mengambil semua testimonial dengan pagination dan search
+func (s *testimonialService) GetAll(ctx context.Context, page, limit int, search string) ([]responses.TestimonialResponse, int, int, int64, error) {
 	// Set default values
 	if page < 1 {
 		page = 1
@@ -101,7 +101,7 @@ func (s *testimonialService) GetAll(ctx context.Context, page, limit int) ([]res
 		limit = 10
 	}
 
-	testimonials, total, err := s.testimonialRepo.FindAll(page, limit)
+	testimonials, total, err := s.testimonialRepo.FindAll(page, limit, search)
 	if err != nil {
 		return nil, 0, 0, 0, errors.New("gagal mengambil data testimonial")
 	}
@@ -110,6 +110,16 @@ func (s *testimonialService) GetAll(ctx context.Context, page, limit int) ([]res
 	lastPage := int(total) / limit
 	if int(total)%limit != 0 {
 		lastPage++
+	}
+
+	// Auto-clamp: jika page melebihi lastPage dan ada data, clamp ke lastPage
+	if page > lastPage && lastPage > 0 {
+		page = lastPage
+		// Re-fetch dengan page yang sudah di-clamp
+		testimonials, _, err = s.testimonialRepo.FindAll(page, limit, search)
+		if err != nil {
+			return nil, 0, 0, 0, errors.New("gagal mengambil data testimonial")
+		}
 	}
 
 	// Convert to response DTOs

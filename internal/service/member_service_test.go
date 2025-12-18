@@ -13,7 +13,7 @@ import (
 // MockMemberRepository adalah mock untuk MemberRepository
 type MockMemberRepository struct {
 	CreateFunc                   func(member *domain.Member) error
-	FindAllFunc                  func(page, limit int) ([]domain.Member, int64, error)
+	FindAllFunc                  func(page, limit int, search string) ([]domain.Member, int64, error)
 	FindByIDFunc                 func(id int) (*domain.Member, error)
 	UpdateFunc                   func(member *domain.Member) error
 	DeleteFunc                   func(id int) error
@@ -28,9 +28,9 @@ func (m *MockMemberRepository) Create(member *domain.Member) error {
 	return errors.New("mock not configured")
 }
 
-func (m *MockMemberRepository) FindAll(page, limit int) ([]domain.Member, int64, error) {
+func (m *MockMemberRepository) FindAll(page, limit int, search string) ([]domain.Member, int64, error) {
 	if m.FindAllFunc != nil {
-		return m.FindAllFunc(page, limit)
+		return m.FindAllFunc(page, limit, search)
 	}
 	return nil, 0, errors.New("mock not configured")
 }
@@ -131,7 +131,7 @@ func TestMemberCreate_ErrorDatabaseWithRollback(t *testing.T) {
 // Test: Pagination default values harus diset (page=1, limit=10)
 func TestMemberGetAll_ValidationDefaultPagination(t *testing.T) {
 	mockRepo := &MockMemberRepository{
-		FindAllFunc: func(page, limit int) ([]domain.Member, int64, error) {
+		FindAllFunc: func(page, limit int, search string) ([]domain.Member, int64, error) {
 			if page != 1 || limit != 10 {
 				t.Errorf("Expected default page=1, limit=10, got page=%d, limit=%d", page, limit)
 			}
@@ -143,7 +143,7 @@ func TestMemberGetAll_ValidationDefaultPagination(t *testing.T) {
 	service := NewMemberService(mockRepo, mockCloudinary)
 
 	// Test dengan invalid values
-	_, _, _, _, err := service.GetAll(context.Background(), 0, -5)
+	_, _, _, _, err := service.GetAll(context.Background(), 0, -5, "")
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
 	}
@@ -152,7 +152,7 @@ func TestMemberGetAll_ValidationDefaultPagination(t *testing.T) {
 // Test: Database error harus return error
 func TestMemberGetAll_ErrorDatabaseFailed(t *testing.T) {
 	mockRepo := &MockMemberRepository{
-		FindAllFunc: func(page, limit int) ([]domain.Member, int64, error) {
+		FindAllFunc: func(page, limit int, search string) ([]domain.Member, int64, error) {
 			return nil, 0, errors.New("database error")
 		},
 	}
@@ -160,7 +160,7 @@ func TestMemberGetAll_ErrorDatabaseFailed(t *testing.T) {
 	mockCloudinary := &MockCloudinaryService{}
 	service := NewMemberService(mockRepo, mockCloudinary)
 
-	_, _, _, _, err := service.GetAll(context.Background(), 1, 10)
+	_, _, _, _, err := service.GetAll(context.Background(), 1, 10, "")
 
 	if err == nil || err.Error() != "gagal mengambil data member" {
 		t.Errorf("Expected 'gagal mengambil data member' error, got: %v", err)
@@ -183,7 +183,7 @@ func TestMemberGetAll_LogicLastPageCalculation(t *testing.T) {
 
 	for _, tt := range tests {
 		mockRepo := &MockMemberRepository{
-			FindAllFunc: func(page, limit int) ([]domain.Member, int64, error) {
+			FindAllFunc: func(page, limit int, search string) ([]domain.Member, int64, error) {
 				return []domain.Member{}, tt.total, nil
 			},
 		}
@@ -191,7 +191,7 @@ func TestMemberGetAll_LogicLastPageCalculation(t *testing.T) {
 		mockCloudinary := &MockCloudinaryService{}
 		service := NewMemberService(mockRepo, mockCloudinary)
 
-		_, _, lastPage, _, err := service.GetAll(context.Background(), 1, tt.limit)
+		_, _, lastPage, _, err := service.GetAll(context.Background(), 1, tt.limit, "")
 
 		if err != nil {
 			t.Errorf("Expected no error, got: %v", err)
