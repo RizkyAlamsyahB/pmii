@@ -19,3 +19,10 @@ type LatestNewsSectionResponse struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 	TotalViews    int64     `json:"total_views"`
 }
+
+type AboutUsSectionResponse struct {
+	Title       string `json:"title"`
+	Subtitle    string `json:"subtitle"`
+	Description string `json:"description"`
+	ImageURI    string `json:"image_uri"`
+}

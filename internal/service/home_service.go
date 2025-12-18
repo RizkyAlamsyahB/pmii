@@ -9,6 +9,7 @@ import (
 type HomeService interface {
 	GetHeroSection() ([]responses.HeroSectionResponse, error)
 	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
+	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
 }
 
 type homeService struct {
@@ -53,4 +54,18 @@ func (s *homeService) GetLatestNewsSection() ([]responses.LatestNewsSectionRespo
 	}
 
 	return latestNewsSection, nil
+}
+
+func (s *homeService) GetAboutUsSection() (*responses.AboutUsSectionResponse, error) {
+	aboutUsSection, err := s.homeRepository.GetAboutUsSection()
+	if err != nil {
+		logger.Error.Printf("Failed to get about us section from repository: %v", err)
+		return nil, err
+	}
+
+	if aboutUsSection.ImageURI != "" {
+		aboutUsSection.ImageURI = s.cloudinaryService.GetImageURL("home/images", aboutUsSection.ImageURI)
+	}
+
+	return aboutUsSection, nil
 }

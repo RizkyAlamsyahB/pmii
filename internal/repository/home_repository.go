@@ -8,6 +8,7 @@ import (
 type HomeRepository interface {
 	GetHeroSection() ([]responses.HeroSectionResponse, error)
 	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
+	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
 }
 
 type homeRepository struct {
@@ -38,7 +39,6 @@ func (r *homeRepository) GetHeroSection() ([]responses.HeroSectionResponse, erro
 		Order("RANDOM()").
 		Limit(5).
 		Find(&posts).Error
-
 	if err != nil {
 		// Only database errors (connection issues, query errors, etc.)
 		return nil, err
@@ -70,7 +70,6 @@ func (r *homeRepository) GetLatestNewsSection() ([]responses.LatestNewsSectionRe
 		Order("posts.created_at DESC").
 		Limit(5).
 		Find(&news).Error
-
 	if err != nil {
 		// Only database errors (connection issues, query errors, etc.)
 		return nil, err
@@ -78,4 +77,14 @@ func (r *homeRepository) GetLatestNewsSection() ([]responses.LatestNewsSectionRe
 
 	// Returns news slice (can be empty []) with no error
 	return news, nil
+}
+
+// todo: this is temporarily harcoded
+func (r *homeRepository) GetAboutUsSection() (*responses.AboutUsSectionResponse, error) {
+	return &responses.AboutUsSectionResponse{
+		Title:       "Sekilas tentang sejarah, nilai, dan arah gerakan PMII.",
+		Subtitle:    "Tentang PMII",
+		Description: "Organisasi mahasiswa berbasis nilai keislaman dan keindonesiaan yang telah bergerak sejak 1960 untuk mencetak kader bangsa berkarakter dan berwawasan luas.",
+		ImageURI:    "about-image.jpg",
+	}, nil
 }
