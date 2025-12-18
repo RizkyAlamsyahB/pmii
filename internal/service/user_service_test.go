@@ -64,9 +64,13 @@ func (m *MockUserRepositoryForUserService) Delete(id int) error {
 
 // MockCloudinaryService adalah mock untuk CloudinaryService (untuk testing UserService)
 type MockCloudinaryServiceForUserService struct {
-	UploadImageFunc func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
-	GetImageURLFunc func(folder string, fileName string) string
-	DeleteImageFunc func(ctx context.Context, folder string, fileName string) error
+	UploadImageFunc    func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	GetImageURLFunc    func(folder string, fileName string) string
+	DeleteImageFunc    func(ctx context.Context, folder string, fileName string) error
+	UploadFileFunc     func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteFileFunc     func(ctx context.Context, folder string, filename string) error
+	GetFileURLFunc     func(folder string, filename string) string
+	GetDownloadURLFunc func(folder string, filename string) string
 }
 
 func (m *MockCloudinaryServiceForUserService) UploadImage(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
@@ -88,6 +92,34 @@ func (m *MockCloudinaryServiceForUserService) DeleteImage(ctx context.Context, f
 		return m.DeleteImageFunc(ctx, folder, fileName)
 	}
 	return nil
+}
+
+func (m *MockCloudinaryServiceForUserService) UploadFile(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+	if m.UploadFileFunc != nil {
+		return m.UploadFileFunc(ctx, folder, file)
+	}
+	return "", nil
+}
+
+func (m *MockCloudinaryServiceForUserService) DeleteFile(ctx context.Context, folder string, filename string) error {
+	if m.DeleteFileFunc != nil {
+		return m.DeleteFileFunc(ctx, folder, filename)
+	}
+	return nil
+}
+
+func (m *MockCloudinaryServiceForUserService) GetFileURL(folder string, filename string) string {
+	if m.GetFileURLFunc != nil {
+		return m.GetFileURLFunc(folder, filename)
+	}
+	return ""
+}
+
+func (m *MockCloudinaryServiceForUserService) GetDownloadURL(folder string, filename string) string {
+	if m.GetDownloadURLFunc != nil {
+		return m.GetDownloadURLFunc(folder, filename)
+	}
+	return ""
 }
 
 // Helper functions untuk membuat pointer dari value

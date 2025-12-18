@@ -56,9 +56,13 @@ func (m *MockTestimonialRepository) Delete(id int) error {
 
 // MockCloudinaryService adalah mock untuk Cloudinary Service
 type MockCloudinaryService struct {
-	UploadImageFunc func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
-	DeleteImageFunc func(ctx context.Context, folder string, filename string) error
-	GetImageURLFunc func(folder string, filename string) string
+	UploadImageFunc   func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteImageFunc   func(ctx context.Context, folder string, filename string) error
+	GetImageURLFunc   func(folder string, filename string) string
+	UploadFileFunc    func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteFileFunc    func(ctx context.Context, folder string, filename string) error
+	GetFileURLFunc    func(folder string, filename string) string
+	GetDownloadURLFunc func(folder string, filename string) string
 }
 
 func (m *MockCloudinaryService) UploadImage(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
@@ -78,6 +82,34 @@ func (m *MockCloudinaryService) DeleteImage(ctx context.Context, folder string, 
 func (m *MockCloudinaryService) GetImageURL(folder string, filename string) string {
 	if m.GetImageURLFunc != nil {
 		return m.GetImageURLFunc(folder, filename)
+	}
+	return ""
+}
+
+func (m *MockCloudinaryService) UploadFile(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+	if m.UploadFileFunc != nil {
+		return m.UploadFileFunc(ctx, folder, file)
+	}
+	return "", nil
+}
+
+func (m *MockCloudinaryService) DeleteFile(ctx context.Context, folder string, filename string) error {
+	if m.DeleteFileFunc != nil {
+		return m.DeleteFileFunc(ctx, folder, filename)
+	}
+	return nil
+}
+
+func (m *MockCloudinaryService) GetFileURL(folder string, filename string) string {
+	if m.GetFileURLFunc != nil {
+		return m.GetFileURLFunc(folder, filename)
+	}
+	return ""
+}
+
+func (m *MockCloudinaryService) GetDownloadURL(folder string, filename string) string {
+	if m.GetDownloadURLFunc != nil {
+		return m.GetDownloadURLFunc(folder, filename)
 	}
 	return ""
 }
