@@ -363,10 +363,10 @@ func TestCreateUser_PasswordValidation(t *testing.T) {
 // TestCreateUser_ErrorCases menguji berbagai error cases
 func TestCreateUser_ErrorCases(t *testing.T) {
 	tests := []struct {
-		name           string
-		setupMock      func() (*MockUserRepositoryForUserService, *MockCloudinaryServiceForUserService)
-		photoFile      *multipart.FileHeader
-		expectedErr    error
+		name        string
+		setupMock   func() (*MockUserRepositoryForUserService, *MockCloudinaryServiceForUserService)
+		photoFile   *multipart.FileHeader
+		expectedErr error
 	}{
 		{
 			name: "email already exists",
@@ -534,10 +534,10 @@ func TestUpdateUser_PasswordValidation(t *testing.T) {
 	existingUser := &domain.User{ID: 1, FullName: "Test User", Email: "test@example.com", PasswordHash: "oldhash", Role: 2, IsActive: true}
 
 	tests := []struct {
-		name         string
-		password     *string
-		expectedErr  error
-		hashChanged  bool
+		name        string
+		password    *string
+		expectedErr error
+		hashChanged bool
 	}{
 		{"only letters", strPtr("onlyletters"), ErrInvalidPassword, false},
 		{"only numbers", strPtr("12345678"), ErrInvalidPassword, false},

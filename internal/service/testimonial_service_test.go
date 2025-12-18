@@ -56,12 +56,12 @@ func (m *MockTestimonialRepository) Delete(id int) error {
 
 // MockCloudinaryService adalah mock untuk Cloudinary Service
 type MockCloudinaryService struct {
-	UploadImageFunc   func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
-	DeleteImageFunc   func(ctx context.Context, folder string, filename string) error
-	GetImageURLFunc   func(folder string, filename string) string
-	UploadFileFunc    func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
-	DeleteFileFunc    func(ctx context.Context, folder string, filename string) error
-	GetFileURLFunc    func(folder string, filename string) string
+	UploadImageFunc    func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteImageFunc    func(ctx context.Context, folder string, filename string) error
+	GetImageURLFunc    func(folder string, filename string) string
+	UploadFileFunc     func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteFileFunc     func(ctx context.Context, folder string, filename string) error
+	GetFileURLFunc     func(folder string, filename string) string
 	GetDownloadURLFunc func(folder string, filename string) string
 }
 
