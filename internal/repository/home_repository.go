@@ -39,7 +39,7 @@ func (r *homeRepository) GetHeroSection() ([]responses.HeroSectionResponse, erro
 		Where("posts.status = ?", "published").
 		Joins("LEFT JOIN post_views ON post_views.post_id = posts.id").
 		Group("posts.id").
-		Order("RANDOM()").
+		Order("total_views DESC").
 		Limit(5).
 		Find(&posts).Error
 	if err != nil {
