@@ -30,6 +30,11 @@ func (h *DocumentHandler) Create(c *gin.Context) {
 
 	var req requests.CreateDocumentRequest
 	if err := c.ShouldBind(&req); err != nil {
+		errors := FormatValidationErrors(err)
+		if len(errors) > 0 {
+			c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(errors))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Nama dan jenis file wajib diisi"))
 		return
 	}
@@ -97,6 +102,11 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 
 	var req requests.UpdateDocumentRequest
 	if err := c.ShouldBind(&req); err != nil {
+		errors := FormatValidationErrors(err)
+		if len(errors) > 0 {
+			c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(errors))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Data tidak valid"))
 		return
 	}
@@ -106,6 +116,10 @@ func (h *DocumentHandler) Update(c *gin.Context) {
 
 	result, err := h.documentService.Update(ctx, id, req, file)
 	if err != nil {
+		if err.Error() == "dokumen tidak ditemukan" {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
 		return
 	}
@@ -122,6 +136,10 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.documentService.Delete(c.Request.Context(), id); err != nil {
+		if err.Error() == "dokumen tidak ditemukan" {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, err.Error()))
 		return
 	}

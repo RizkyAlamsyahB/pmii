@@ -28,6 +28,11 @@ func (h *MemberHandler) Create(c *gin.Context) {
 
 	// Bind form data
 	if err := c.ShouldBind(&req); err != nil {
+		errors := FormatValidationErrors(err)
+		if len(errors) > 0 {
+			c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(errors))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Data tidak valid"))
 		return
 	}
@@ -110,6 +115,11 @@ func (h *MemberHandler) Update(c *gin.Context) {
 
 	// Bind form data
 	if err := c.ShouldBind(&req); err != nil {
+		errors := FormatValidationErrors(err)
+		if len(errors) > 0 {
+			c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(errors))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Data tidak valid"))
 		return
 	}
@@ -140,6 +150,10 @@ func (h *MemberHandler) Update(c *gin.Context) {
 	// Call service
 	member, err := h.memberService.Update(c.Request.Context(), id, req, photoFile)
 	if err != nil {
+		if err.Error() == "member tidak ditemukan" {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+			return
+		}
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}
@@ -156,6 +170,10 @@ func (h *MemberHandler) Delete(c *gin.Context) {
 	}
 
 	if err := h.memberService.Delete(c.Request.Context(), id); err != nil {
+		if err.Error() == "member tidak ditemukan" {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+			return
+		}
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}
