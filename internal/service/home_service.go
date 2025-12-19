@@ -12,6 +12,7 @@ type HomeService interface {
 	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
 	GetWhySection() (*responses.WhySectionResponse, error)
 	GetTestimonialSection() ([]responses.TestimonialSectionResponse, error)
+	GetFaqSection() (*responses.FaqSectionResponse, error)
 }
 
 type homeService struct {
@@ -126,4 +127,14 @@ func (s *homeService) GetTestimonialSection() ([]responses.TestimonialSectionRes
 	}
 
 	return result, nil
+}
+
+func (s *homeService) GetFaqSection() (*responses.FaqSectionResponse, error) {
+	faqSection, err := s.homeRepository.GetFaqSection()
+	if err != nil {
+		logger.Error.Printf("Failed to get faq section from repository: %v", err)
+		return nil, err
+	}
+
+	return faqSection, nil
 }

@@ -41,3 +41,10 @@ type TestimonialSectionResponse struct {
 	Career    string `json:"career"`
 	ImageURI  string `json:"image_uri"`
 }
+
+type FaqSectionResponse struct {
+	Title       string              `json:"title"`
+	Subtitle    string              `json:"subtitle"`
+	Description *string             `json:"description"`
+	Data        []map[string]string `json:"data"`
+}

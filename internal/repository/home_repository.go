@@ -10,6 +10,7 @@ type HomeRepository interface {
 	GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error)
 	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
 	GetWhySection() (*responses.WhySectionResponse, error)
+	GetFaqSection() (*responses.FaqSectionResponse, error)
 }
 
 type homeRepository struct {
@@ -123,5 +124,42 @@ func (r *homeRepository) GetWhySection() (*responses.WhySectionResponse, error) 
 		Subtitle:    "Mengapa PMII?",
 		Description: nil,
 		Data:        whyItem,
+	}, nil
+}
+
+// todo: this is temporarily hardcoded
+func (r *homeRepository) GetFaqSection() (*responses.FaqSectionResponse, error) {
+	var faqItem []map[string]string
+
+	faqItem = append(faqItem, map[string]string{
+		"title":       "Apa itu PMII?",
+		"description": "PMII adalah organisasi mahasiswa berbasis nilai keislaman dan keindonesiaan yang telah bergerak sejak 1960 untuk mencetak kader bangsa berkarakter dan berwawasan luas.",
+	})
+
+	faqItem = append(faqItem, map[string]string{
+		"title":       "Apa tujuan PMII?",
+		"description": "Tujuan PMII adalah untuk mencetak kader bangsa berkarakter dan berwawasan luas.",
+	})
+
+	faqItem = append(faqItem, map[string]string{
+		"title":       "Bagaimana saya bisa menjadi anggota PMII?",
+		"description": "Untuk menjadi anggota PMII, Anda perlu mengikuti proses pendaftaran yang dapat Anda lakukan di website resmi PMII.",
+	})
+
+	faqItem = append(faqItem, map[string]string{
+		"title":       "Apakah PMII ada di semua kampus?",
+		"description": "PMII ada di berbagai kampus di Indonesia.",
+	})
+
+	faqItem = append(faqItem, map[string]string{
+		"title":       "Apakah menjadi anggota dikenakan biaya?",
+		"description": "Tidak, menjadi anggota PMII tidak dikenakan biaya.",
+	})
+
+	return &responses.FaqSectionResponse{
+		Title:       "Pertanyaan sering diajukan",
+		Subtitle:    "FAQ",
+		Description: nil,
+		Data:        faqItem,
 	}, nil
 }
