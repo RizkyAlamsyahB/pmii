@@ -84,8 +84,8 @@ func (s *homeService) GetWhySection() (*responses.WhySectionResponse, error) {
 	}
 
 	for i := range whySection.Data {
-		if whySection.Data[i]["iconURI"] != "" {
-			whySection.Data[i]["iconURI"] = s.cloudinaryService.GetImageURL("why/images", whySection.Data[i]["iconURI"])
+		if whySection.Data[i].IconURI != "" {
+			whySection.Data[i].IconURI = s.cloudinaryService.GetImageURL("why/images", whySection.Data[i].IconURI)
 		}
 	}
 

@@ -27,11 +27,17 @@ type AboutUsSectionResponse struct {
 	ImageURI    string `json:"image_uri"`
 }
 
+type WhyItem struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	IconURI     string `json:"icon_uri"`
+}
+
 type WhySectionResponse struct {
-	Title       string              `json:"title"`
-	Subtitle    string              `json:"subtitle"`
-	Description *string             `json:"description"`
-	Data        []map[string]string `json:"data"`
+	Title       string    `json:"title"`
+	Subtitle    string    `json:"subtitle"`
+	Description *string   `json:"description"`
+	Data        []WhyItem `json:"data"`
 }
 
 type TestimonialSectionResponse struct {
@@ -42,11 +48,16 @@ type TestimonialSectionResponse struct {
 	ImageURI  string `json:"image_uri"`
 }
 
+type FaqItem struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
+}
+
 type FaqSectionResponse struct {
-	Title       string              `json:"title"`
-	Subtitle    string              `json:"subtitle"`
-	Description *string             `json:"description"`
-	Data        []map[string]string `json:"data"`
+	Title       string    `json:"title"`
+	Subtitle    string    `json:"subtitle"`
+	Description *string   `json:"description"`
+	Data        []FaqItem `json:"data"`
 }
 
 type CtaSectionResponse struct {

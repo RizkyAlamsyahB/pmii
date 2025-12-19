@@ -82,7 +82,6 @@ func (r *homeRepository) GetLatestNewsSection() ([]responses.LatestNewsSectionRe
 	return news, nil
 }
 
-// todo: this is temporarily harcoded
 func (r *homeRepository) GetAboutUsSection() (*responses.AboutUsSectionResponse, error) {
 	return &responses.AboutUsSectionResponse{
 		Title:       "Sekilas tentang sejarah, nilai, dan arah gerakan PMII.",
@@ -92,83 +91,73 @@ func (r *homeRepository) GetAboutUsSection() (*responses.AboutUsSectionResponse,
 	}, nil
 }
 
-// todo: this is temporarily hardcoded
 func (r *homeRepository) GetWhySection() (*responses.WhySectionResponse, error) {
-	var whyItem []map[string]string
-
-	whyItem = append(whyItem, map[string]string{
-		"title":       "Perkaderan Benjenjang",
-		"description": "Pembentukan karakter dan kepemimpinan.",
-		"iconURI":     "icon1.png",
-	})
-
-	whyItem = append(whyItem, map[string]string{
-		"title":       "Komunitas Nasional",
-		"description": "Hadir di berbagai kampus di Indonesia",
-		"iconURI":     "icon2.png",
-	})
-
-	whyItem = append(whyItem, map[string]string{
-		"title":       "Kegiatan Intelektual & Sosial",
-		"description": "Pelatihan, kajian, dan aksi sosial",
-		"iconURI":     "icon3.png",
-	})
-
-	whyItem = append(whyItem, map[string]string{
-		"title":       "Akses Jaringan Alumni",
-		"description": "Dukungan karier dan mentorship",
-		"iconURI":     "icon4.png",
-	})
+	whyItems := []responses.WhyItem{
+		{
+			Title:       "Perkaderan Benjenjang",
+			Description: "Pembentukan karakter dan kepemimpinan.",
+			IconURI:     "icon1.png",
+		},
+		{
+			Title:       "Komunitas Nasional",
+			Description: "Hadir di berbagai kampus di Indonesia",
+			IconURI:     "icon2.png",
+		},
+		{
+			Title:       "Kegiatan Intelektual & Sosial",
+			Description: "Pelatihan, kajian, dan aksi sosial",
+			IconURI:     "icon3.png",
+		},
+		{
+			Title:       "Akses Jaringan Alumni",
+			Description: "Dukungan karier dan mentorship",
+			IconURI:     "icon4.png",
+		},
+	}
 
 	return &responses.WhySectionResponse{
 		Title:       "Nilai dan keunggulan yang membuat PMII menjadi ruang tumbuh bagi mahasiswa",
 		Subtitle:    "Mengapa PMII?",
 		Description: nil,
-		Data:        whyItem,
+		Data:        whyItems,
 	}, nil
 }
 
-// todo: this is temporarily hardcoded
 func (r *homeRepository) GetFaqSection() (*responses.FaqSectionResponse, error) {
-	var faqItem []map[string]string
-
-	faqItem = append(faqItem, map[string]string{
-		"title":       "Apa itu PMII?",
-		"description": "PMII adalah organisasi mahasiswa berbasis nilai keislaman dan keindonesiaan yang telah bergerak sejak 1960 untuk mencetak kader bangsa berkarakter dan berwawasan luas.",
-	})
-
-	faqItem = append(faqItem, map[string]string{
-		"title":       "Apa tujuan PMII?",
-		"description": "Tujuan PMII adalah untuk mencetak kader bangsa berkarakter dan berwawasan luas.",
-	})
-
-	faqItem = append(faqItem, map[string]string{
-		"title":       "Bagaimana saya bisa menjadi anggota PMII?",
-		"description": "Untuk menjadi anggota PMII, Anda perlu mengikuti proses pendaftaran yang dapat Anda lakukan di website resmi PMII.",
-	})
-
-	faqItem = append(faqItem, map[string]string{
-		"title":       "Apakah PMII ada di semua kampus?",
-		"description": "PMII ada di berbagai kampus di Indonesia.",
-	})
-
-	faqItem = append(faqItem, map[string]string{
-		"title":       "Apakah menjadi anggota dikenakan biaya?",
-		"description": "Tidak, menjadi anggota PMII tidak dikenakan biaya.",
-	})
+	faqItems := []responses.FaqItem{
+		{
+			Question: "Apa itu PMII?",
+			Answer:   "PMII adalah organisasi mahasiswa berbasis nilai keislaman dan keindonesiaan yang telah bergerak sejak 1960 untuk mencetak kader bangsa berkarakter dan berwawasan luas.",
+		},
+		{
+			Question: "Siapa yang bisa bergabung?",
+			Answer:   "Semua mahasiswa yang memiliki nilai keislaman dan keindonesiaan dapat bergabung dengan PMII.",
+		},
+		{
+			Question: "Bagaimana proses kaderisasi?",
+			Answer:   "Proses kaderisasi melibatkan beberapa tahap, termasuk pendaftaran, wawancara, dan pengujian karakter.",
+		},
+		{
+			Question: "Apakah PMII ada di semua kampus?",
+			Answer:   "PMII ada di berbagai kampus di Indonesia.",
+		},
+		{
+			Question: "Apakah menjadi anggota dikenakan biaya?",
+			Answer:   "Tidak, menjadi anggota PMII tidak dikenakan biaya.",
+		},
+	}
 
 	return &responses.FaqSectionResponse{
-		Title:       "Pertanyaan sering diajukan",
+		Title:       "Jawaban atas pertanyaan umum dari calon anggota dan pengunjung.",
 		Subtitle:    "FAQ",
 		Description: nil,
-		Data:        faqItem,
+		Data:        faqItems,
 	}, nil
 }
 
-// todo: this is temporarily hardcoded
 func (r *homeRepository) GetCtaSection() (*responses.CtaSectionResponse, error) {
 	return &responses.CtaSectionResponse{
-		Title:    "Ayo Bergabung",
-		Subtitle: "Bergabung dengan PMII",
+		Title:    "Ambil langkah pertama untuk menjadi bagian dari gerakan perubahan.",
+		Subtitle: "Siap Bergabung dengan PMII?",
 	}, nil
 }
