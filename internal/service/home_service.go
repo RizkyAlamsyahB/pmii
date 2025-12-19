@@ -13,6 +13,7 @@ type HomeService interface {
 	GetWhySection() (*responses.WhySectionResponse, error)
 	GetTestimonialSection() ([]responses.TestimonialSectionResponse, error)
 	GetFaqSection() (*responses.FaqSectionResponse, error)
+	GetCtaSection() (*responses.CtaSectionResponse, error)
 }
 
 type homeService struct {
@@ -137,4 +138,14 @@ func (s *homeService) GetFaqSection() (*responses.FaqSectionResponse, error) {
 	}
 
 	return faqSection, nil
+}
+
+func (s *homeService) GetCtaSection() (*responses.CtaSectionResponse, error) {
+	ctaSection, err := s.homeRepository.GetCtaSection()
+	if err != nil {
+		logger.Error.Printf("Failed to get cta section from repository: %v", err)
+		return nil, err
+	}
+
+	return ctaSection, nil
 }

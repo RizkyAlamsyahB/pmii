@@ -11,6 +11,7 @@ type HomeRepository interface {
 	GetAboutUsSection() (*responses.AboutUsSectionResponse, error)
 	GetWhySection() (*responses.WhySectionResponse, error)
 	GetFaqSection() (*responses.FaqSectionResponse, error)
+	GetCtaSection() (*responses.CtaSectionResponse, error)
 }
 
 type homeRepository struct {
@@ -161,5 +162,13 @@ func (r *homeRepository) GetFaqSection() (*responses.FaqSectionResponse, error) 
 		Subtitle:    "FAQ",
 		Description: nil,
 		Data:        faqItem,
+	}, nil
+}
+
+// todo: this is temporarily hardcoded
+func (r *homeRepository) GetCtaSection() (*responses.CtaSectionResponse, error) {
+	return &responses.CtaSectionResponse{
+		Title:    "Ayo Bergabung",
+		Subtitle: "Bergabung dengan PMII",
 	}, nil
 }

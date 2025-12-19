@@ -48,3 +48,8 @@ type FaqSectionResponse struct {
 	Description *string             `json:"description"`
 	Data        []map[string]string `json:"data"`
 }
+
+type CtaSectionResponse struct {
+	Title    string `json:"title"`
+	Subtitle string `json:"subtitle"`
+}

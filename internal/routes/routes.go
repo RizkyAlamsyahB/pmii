@@ -77,6 +77,7 @@ func SetupRoutes(
 		v1.GET("home/why", publicHomeHandler.GetWhySection)                 // GET /v1/home/why
 		v1.GET("home/testimonial", publicHomeHandler.GetTestimonialSection) // GET /v1/home/testimonial
 		v1.GET("home/faq", publicHomeHandler.GetFaqSection)                 // GET /v1/home/faq
+		v1.GET("home/cta", publicHomeHandler.GetCtaSection)                 // GET /v1/home/cta
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")

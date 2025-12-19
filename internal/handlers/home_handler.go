@@ -77,3 +77,13 @@ func (h *PublicHomeHandler) GetFaqSection(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data faq section", faqSection))
 }
+
+func (h *PublicHomeHandler) GetCtaSection(c *gin.Context) {
+	ctaSection, err := h.homeService.GetCtaSection()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(http.StatusInternalServerError, "Gagal mengambil data cta section"))
+		return
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse(http.StatusOK, "Berhasil mengambil data cta section", ctaSection))
+}
