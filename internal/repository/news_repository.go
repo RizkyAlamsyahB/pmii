@@ -8,6 +8,8 @@ import (
 type NewsRepository interface {
 	GetPublishedNews(offset, limit int, search string) ([]domain.Post, int64, error)
 	GetNewsBySlug(slug string) (domain.Post, error)
+	//metod untuk mendapatkan berita berdasarkan kategori
+	GetNewsByCategorySlug(categorySlug string, offset, limit int) ([]domain.Post, int64, error)
 }
 
 type newsRepository struct{}
@@ -31,6 +33,23 @@ func (r *newsRepository) GetPublishedNews(offset, limit int, search string) ([]d
 
 	db.Count(&total)
 	err := db.Limit(limit).Offset(offset).Order("published_at DESC").Find(&posts).Error
+
+	return posts, total, err
+}
+
+func (r *newsRepository) GetNewsByCategorySlug(categorySlug string, offset, limit int) ([]domain.Post, int64, error) {
+	var posts []domain.Post
+	var total int64
+
+	// Query untuk mencari post berdasarkan slug kategori melalui Join
+	db := config.DB.Model(&domain.Post{}).
+		Preload("Category").
+		Preload("Tags").
+		Joins("JOIN categories ON categories.id = posts.category_id").
+		Where("categories.slug = ? AND posts.status = ?", categorySlug, "published")
+
+	db.Count(&total)
+	err := db.Limit(limit).Offset(offset).Order("posts.published_at DESC").Find(&posts).Error
 
 	return posts, total, err
 }

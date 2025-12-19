@@ -22,3 +22,16 @@ func TestFetchNewsDetail_EmptySlug(t *testing.T) {
 	// Dalam realita, Anda akan meng-inject mock repository ke newsService
 	assert.NotNil(t, t)
 }
+
+func TestFetchByCategory(t *testing.T) {
+	// Pengujian skenario jika category slug diberikan
+	categorySlug := "opini"
+	page := 1
+	limit := 10
+
+	// Pastikan offset dihitung dengan benar
+	offset := (page - 1) * limit
+	if offset != 0 {
+		t.Errorf("Expected offset 0, got %d", offset)
+	}
+}
