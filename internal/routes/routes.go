@@ -32,6 +32,10 @@ func SetupRoutes(
 	postSvc := service.NewPostService(postRepo)
 	postHandler := handlers.NewPostHandler(postSvc)
 
+	catRepo := repository.NewCategoryRepository()
+	catSvc := service.NewCategoryService(catRepo)
+	catHandler := handlers.NewCategoryHandler(catSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
@@ -136,17 +140,10 @@ func SetupRoutes(
 
 		categories := v1.Group("/categories")
 		{
-			// Create (POST /v1/categories)
-			categories.POST("", handlers.CreateCategory)
-
-			// Read All (GET /v1/categories)
-			categories.GET("", handlers.GetCategories)
-
-			// Update (PUT /v1/categories/:id) -> Jika ingin pakai
-			categories.PUT("/:id", handlers.UpdateCategory)
-
-			// Delete (DELETE /v1/categories/:id)
-			categories.DELETE("/:id", handlers.DeleteCategory)
+			categories.GET("", catHandler.GetCategories)
+			categories.POST("", catHandler.CreateCategory)
+			categories.PUT("/:id", catHandler.UpdateCategory)
+			categories.DELETE("/:id", catHandler.DeleteCategory)
 		}
 
 		tags := v1.Group("/tags")
