@@ -1,0 +1,266 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PMII API - Users Module",
+    "description": "API Contract untuk modul Users.\nEndpoint dalam modul ini dapat diakses oleh **semua authenticated users**.\nMemerlukan autentikasi menggunakan Bearer Token JWT.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "PMII Development Team"
+    }
+  },
+  "servers": [
+    {
+      "url": "/v1",
+      "description": "API Version 1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Users",
+      "description": "Endpoint user untuk mengakses profil sendiri"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/users/me": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get My Profile",
+        "description": "Mengambil profil user yang sedang login (berdasarkan token JWT).\nDapat diakses oleh **semua authenticated users** (baik admin maupun user biasa).",
+        "operationId": "getMyProfile",
+        "responses": {
+          "200": {
+            "description": "Berhasil mendapatkan profil",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/UserProfileResponse"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "meta": {
+                    "code": 200,
+                    "status": "success",
+                    "message": "Berhasil mendapatkan profile"
+                  },
+                  "data": {
+                    "id": 1,
+                    "fullName": "John Doe",
+                    "email": "john@example.com",
+                    "role": "user",
+                    "status": "active",
+                    "photoUri": "https://example.com/photos/john.jpg"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT Token dari endpoint login.\nFormat header: `Authorization: Bearer <token>`\n\nToken diperoleh dari endpoint `/v1/auth/login`."
+      }
+    },
+    "schemas": {
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "HTTP status code",
+            "example": 200
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error"
+            ],
+            "description": "Status response",
+            "example": "success"
+          },
+          "message": {
+            "type": "string",
+            "description": "Pesan response",
+            "example": "Data berhasil diambil"
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "UserProfileResponse": {
+        "type": "object",
+        "description": "Data profil user",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID unik user",
+            "example": 1
+          },
+          "fullName": {
+            "type": "string",
+            "description": "Nama lengkap user",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email user",
+            "example": "john@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "description": "Role user dalam sistem:\n- `admin`: Administrator dengan akses penuh\n- `user`: User biasa dengan akses terbatas",
+            "example": "user"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "inactive"
+            ],
+            "description": "Status akun user:\n- `active`: Akun aktif dan dapat digunakan\n- `inactive`: Akun tidak aktif",
+            "example": "active"
+          },
+          "photoUri": {
+            "type": "string",
+            "description": "URL foto profil user (opsional, bisa kosong jika tidak ada foto)",
+            "example": "https://example.com/photos/john.jpg"
+          }
+        }
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Unauthorized - Token tidak valid, expired, atau tidak disertakan",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "missing_token": {
+                "summary": "Token tidak disertakan",
+                "value": {
+                  "meta": {
+                    "code": 401,
+                    "status": "error",
+                    "message": "Akses ditolak - Token tidak ada"
+                  },
+                  "data": null
+                }
+              },
+              "invalid_token": {
+                "summary": "Token tidak valid",
+                "value": {
+                  "meta": {
+                    "code": 401,
+                    "status": "error",
+                    "message": "Akses ditolak - Token tidak valid"
+                  },
+                  "data": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Not Found - User tidak ditemukan",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "meta": {
+                "code": 404,
+                "status": "error",
+                "message": "User tidak ditemukan"
+              },
+              "data": null
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal Server Error - Terjadi kesalahan pada server",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "meta": {
+                "code": 500,
+                "status": "error",
+                "message": "Terjadi kesalahan sistem"
+              },
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}
