@@ -67,8 +67,6 @@ func (r *homeRepository) GetLatestNewsSection() ([]responses.LatestNewsSectionRe
 		`).
 		Where("posts.status = ?", "published").
 		Joins("LEFT JOIN post_views ON post_views.post_id = posts.id").
-		Joins("INNER JOIN categories ON categories.id = posts.category_id").
-		Where("categories.slug = ?", "news").
 		Group("posts.id").
 		Order("posts.created_at DESC").
 		Limit(5).
