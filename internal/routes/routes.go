@@ -36,6 +36,10 @@ func SetupRoutes(
 	catSvc := service.NewCategoryService(catRepo)
 	catHandler := handlers.NewCategoryHandler(catSvc)
 
+	tagRepo := repository.NewTagRepository()
+	tagSvc := service.NewTagService(tagRepo)
+	tagHandler := handlers.NewTagHandler(tagSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
@@ -148,17 +152,10 @@ func SetupRoutes(
 
 		tags := v1.Group("/tags")
 		{
-			// Create (POST /v1/tags)
-			tags.POST("", handlers.CreateTag)
-
-			// Read All (GET /v1/tags)
-			tags.GET("", handlers.GetTags)
-
-			// Update (PUT /v1/tags/:id)
-			tags.PUT("/:id", handlers.UpdateTag)
-
-			// Delete (DELETE /v1/tags/:id)
-			tags.DELETE("/:id", handlers.DeleteTag)
+			tags.GET("", tagHandler.GetTags)
+			tags.POST("", tagHandler.CreateTag)
+			tags.PUT("/:id", tagHandler.UpdateTag)
+			tags.DELETE("/:id", tagHandler.DeleteTag)
 		}
 
 	}
