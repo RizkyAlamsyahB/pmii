@@ -23,32 +23,97 @@ func NewHomeRepository(db *gorm.DB) HomeRepository {
 }
 
 func (r *homeRepository) GetHeroSection() ([]responses.HeroSectionResponse, error) {
-	var posts []responses.HeroSectionResponse
+	type heroPostResult struct {
+		ID            int
+		Title         string
+		Slug          string
+		Excerpt       *string
+		FeaturedImage *string
+		PublishedAt   *string
+		CategoryID    int
+		CategoryName  string
+		UserID        int
+		TotalViews    int64
+	}
 
-	// Query only published posts for hero section
-	// GORM returns empty slice [] if no data found (not an error)
+	var results []heroPostResult
+
+	// Query only published posts for hero section with category info
 	err := r.db.Table("posts").
 		Select(`
 			posts.id,
 			posts.title,
+			posts.slug,
+			posts.excerpt,
 			posts.featured_image,
-			posts.created_at,
-			posts.updated_at,
+			posts.published_at,
+			posts.category_id,
+			categories.name AS category_name,
+			posts.user_id,
 			COUNT(post_views.id) AS total_views
 		`).
-		Where("posts.status = ?", "published").
+		Joins("LEFT JOIN categories ON categories.id = posts.category_id").
 		Joins("LEFT JOIN post_views ON post_views.post_id = posts.id").
-		Group("posts.id").
+		Where("posts.status = ?", "published").
+		Where("posts.deleted_at IS NULL").
+		Group("posts.id, categories.name").
 		Order("total_views DESC").
 		Limit(5).
-		Find(&posts).Error
+		Find(&results).Error
 	if err != nil {
-		// Only database errors (connection issues, query errors, etc.)
 		return nil, err
 	}
 
-	// Returns posts slice (can be empty []) with no error
-	return posts, nil
+	// Build the response with tags for each post
+	var heroSections []responses.HeroSectionResponse
+	for _, result := range results {
+		// Get tags for this post
+		var tagNames []string
+		r.db.Table("tags").
+			Select("tags.name").
+			Joins("JOIN post_tags ON post_tags.tag_id = tags.id").
+			Where("post_tags.post_id = ?", result.ID).
+			Pluck("name", &tagNames)
+
+		excerpt := ""
+		if result.Excerpt != nil {
+			excerpt = *result.Excerpt
+		}
+
+		imageURL := ""
+		if result.FeaturedImage != nil {
+			imageURL = *result.FeaturedImage
+		}
+
+		publishedAt := ""
+		if result.PublishedAt != nil {
+			publishedAt = *result.PublishedAt
+		}
+
+		heroSection := responses.HeroSectionResponse{
+			ID:          int64(result.ID),
+			Title:       result.Title,
+			Slug:        result.Slug,
+			Excerpt:     excerpt,
+			ImageURL:    imageURL,
+			PublishedAt: publishedAt,
+			Category: responses.HeroCategoryResponse{
+				ID:   int64(result.CategoryID),
+				Name: result.CategoryName,
+			},
+			AuthorID: int64(result.UserID),
+			Tags:     tagNames,
+		}
+
+		heroSections = append(heroSections, heroSection)
+	}
+
+	// Return empty slice if no data
+	if heroSections == nil {
+		heroSections = []responses.HeroSectionResponse{}
+	}
+
+	return heroSections, nil
 }
 
 func (r *homeRepository) GetLatestNewsSection() ([]responses.LatestNewsSectionResponse, error) {

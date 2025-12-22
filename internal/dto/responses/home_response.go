@@ -2,13 +2,21 @@ package responses
 
 import "time"
 
+type HeroCategoryResponse struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 type HeroSectionResponse struct {
-	ID            int64     `json:"id"`
-	Title         string    `json:"title"`
-	FeaturedImage string    `json:"featured_image"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	TotalViews    int64     `json:"total_views"`
+	ID          int64                `json:"id"`
+	Title       string               `json:"title"`
+	Slug        string               `json:"slug"`
+	Excerpt     string               `json:"excerpt"`
+	ImageURL    string               `json:"imageUrl"`
+	PublishedAt string               `json:"publishedAt"`
+	Category    HeroCategoryResponse `json:"category"`
+	AuthorID    int64                `json:"authorId"`
+	Tags        []string             `json:"tags"`
 }
 
 type LatestNewsSectionResponse struct {

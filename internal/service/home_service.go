@@ -38,8 +38,8 @@ func (s *homeService) GetHeroSection() ([]responses.HeroSectionResponse, error) 
 	}
 
 	for i := range heroSection {
-		if heroSection[i].FeaturedImage != "" {
-			heroSection[i].FeaturedImage = s.cloudinaryService.GetImageURL("posts/images", heroSection[i].FeaturedImage)
+		if heroSection[i].ImageURL != "" {
+			heroSection[i].ImageURL = s.cloudinaryService.GetImageURL("posts/images", heroSection[i].ImageURL)
 		}
 	}
 
