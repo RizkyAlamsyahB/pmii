@@ -30,6 +30,10 @@ func SetupRoutes(
 	environment string,
 ) {
 
+	// Inisialisasi Dependency untuk News Publik
+	newsRepo := repository.NewNewsRepository()
+	newsSvc := service.NewNewsService(newsRepo)
+	newsHandler := handlers.NewNewsHandler(newsSvc)
 	// --- Inisialisasi Modul Post (Clean Architecture) ---
 	postRepo := repository.NewPostRepository()
 	postSvc := service.NewPostService(postRepo)
@@ -82,6 +86,9 @@ func SetupRoutes(
 			// Ubah/ganti password
 			auth.POST("/change-password", middleware.AuthMiddleware(), authHandler.ChangePassword)
 		}
+
+		v1.GET("/news", newsHandler.GetNewsList)         // GET /v1/news
+		v1.GET("/news/:slug", newsHandler.GetNewsDetail) // GET /v1/news/:slug
 
 		// Public Routes - About Page (No Authentication Required)
 		v1.GET("/about", publicAboutHandler.GetAboutPage)                               // GET /v1/about
