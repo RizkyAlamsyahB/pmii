@@ -19,6 +19,12 @@ func buildImageUrl(filename string) string {
 	return CUSTOM_IMAGE_BASE_URL + filename
 }
 
+// struct pendukung untuk Category
+type CategoryShortResponse struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
 // PostResponse adalah bentuk JSON yang akan dikirim ke client
 type PostResponse struct {
 	ID          int       `json:"id"`
@@ -30,9 +36,9 @@ type PostResponse struct {
 	PublishedAt time.Time `json:"publishedAt"`
 	// Field Views dihapus karena tidak ada di domain/DB
 
-	CategoryId int    `json:"categoryId"`
-	AuthorId   int    `json:"authorId"`
-	Tags       string `json:"tags"`
+	CategoryId CategoryShortResponse `json:"category"`
+	AuthorId   int                   `json:"authorId"`
+	Tags       string                `json:"tags"`
 	// Jika ingin menampilkan data user dan kategori lengkap, bisa
 	// mengganti CategoryId dan AuthorId dengan struct CategoryResponse dan UserResponse
 }
@@ -69,6 +75,17 @@ func FromDomainToPostResponse(post domain.Post) PostResponse {
 		publishedAt = post.CreatedAt
 	}
 
+	// Inisialisasi Category object
+	categoryData := CategoryShortResponse{
+		ID:   post.CategoryID,
+		Name: "", // Default kosong
+	}
+
+	// Jika relasi Category ter-load (Preload), ambil namanya
+	if post.Category.Name != "" {
+		categoryData.Name = post.Category.Name
+	}
+
 	// 3. Return Response
 	return PostResponse{
 		ID:          post.ID,
@@ -79,7 +96,7 @@ func FromDomainToPostResponse(post domain.Post) PostResponse {
 		ImageUrl:    imageUrl,
 		PublishedAt: publishedAt,
 		// Views sudah dihapus dari struct
-		CategoryId: post.CategoryID,
+		CategoryId: categoryData,
 		AuthorId:   post.UserID,
 		Tags:       tagsString,
 	}

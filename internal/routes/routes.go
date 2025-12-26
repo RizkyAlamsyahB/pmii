@@ -5,6 +5,8 @@ import (
 
 	"github.com/garuda-labs-1/pmii-be/internal/handlers"
 	"github.com/garuda-labs-1/pmii-be/internal/middleware"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/internal/service"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
 )
@@ -27,6 +29,20 @@ func SetupRoutes(
 	allowedOrigins string,
 	environment string,
 ) {
+
+	// --- Inisialisasi Modul Post (Clean Architecture) ---
+	postRepo := repository.NewPostRepository()
+	postSvc := service.NewPostService(postRepo)
+	postHandler := handlers.NewPostHandler(postSvc)
+
+	catRepo := repository.NewCategoryRepository()
+	catSvc := service.NewCategoryService(catRepo)
+	catHandler := handlers.NewCategoryHandler(catSvc)
+
+	tagRepo := repository.NewTagRepository()
+	tagSvc := service.NewTagService(tagRepo)
+	tagHandler := handlers.NewTagHandler(tagSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
@@ -141,40 +157,27 @@ func SetupRoutes(
 
 		posts := v1.Group("/posts")
 		{
-			posts.POST("", handlers.CreatePost)       // Create
-			posts.GET("", handlers.GetPosts)          // Read All
-			posts.GET("/:id", handlers.GetPost)       // Read One
-			posts.PUT("/:id", handlers.UpdatePost)    // Update
-			posts.DELETE("/:id", handlers.DeletePost) // Delete
+			posts.GET("", postHandler.GetPosts)
+			posts.POST("", postHandler.CreatePost)
+			posts.GET("/:id", postHandler.GetPost)
+			posts.PUT("/:id", postHandler.UpdatePost)
+			posts.DELETE("/:id", postHandler.DeletePost)
 		}
+
 		categories := v1.Group("/categories")
 		{
-			// Create (POST /v1/categories)
-			categories.POST("", handlers.CreateCategory)
-
-			// Read All (GET /v1/categories)
-			categories.GET("", handlers.GetCategories)
-
-			// Update (PUT /v1/categories/:id) -> Jika ingin pakai
-			categories.PUT("/:id", handlers.UpdateCategory)
-
-			// Delete (DELETE /v1/categories/:id)
-			categories.DELETE("/:id", handlers.DeleteCategory)
+			categories.GET("", catHandler.GetCategories)
+			categories.POST("", catHandler.CreateCategory)
+			categories.PUT("/:id", catHandler.UpdateCategory)
+			categories.DELETE("/:id", catHandler.DeleteCategory)
 		}
 
 		tags := v1.Group("/tags")
 		{
-			// Create (POST /v1/tags)
-			tags.POST("", handlers.CreateTag)
-
-			// Read All (GET /v1/tags)
-			tags.GET("", handlers.GetTags)
-
-			// Update (PUT /v1/tags/:id)
-			tags.PUT("/:id", handlers.UpdateTag)
-
-			// Delete (DELETE /v1/tags/:id)
-			tags.DELETE("/:id", handlers.DeleteTag)
+			tags.GET("", tagHandler.GetTags)
+			tags.POST("", tagHandler.CreateTag)
+			tags.PUT("/:id", tagHandler.UpdateTag)
+			tags.DELETE("/:id", tagHandler.DeleteTag)
 		}
 
 	}

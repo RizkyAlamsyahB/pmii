@@ -2,109 +2,92 @@ package handlers
 
 import (
 	"net/http"
-	"strings"
+	"strconv"
 
-	"github.com/gin-gonic/gin"
-
-	"github.com/garuda-labs-1/pmii-be/config"
-	"github.com/garuda-labs-1/pmii-be/internal/domain"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
+	"github.com/garuda-labs-1/pmii-be/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
-// 1. GET ALL CATEGORIES
-func GetCategories(c *gin.Context) {
-	var categories []domain.Category
+type CategoryHandler struct {
+	svc service.CategoryService
+}
 
-	// Ambil semua data, urutkan dari yang terbaru
-	if err := config.DB.Order("created_at DESC").Find(&categories).Error; err != nil {
+func NewCategoryHandler(svc service.CategoryService) *CategoryHandler {
+	return &CategoryHandler{svc: svc}
+}
+
+// 1. GET ALL CATEGORIES (With Pagination & Search)
+func (h *CategoryHandler) GetCategories(c *gin.Context) {
+	// Mengambil query params sesuai index.json
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
+
+	data, lastPage, total, err := h.svc.GetAll(page, limit, search)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal mengambil data kategori"))
 		return
 	}
 
-	data := responses.FromDomainListToCategoryResponse(categories)
-	c.JSON(http.StatusOK, responses.SuccessResponse(200, "List of categories", data))
+	// Response menggunakan SuccessResponseWithPagination agar konsisten
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(
+		200,
+		"List of categories",
+		data,
+		page,
+		limit,
+		total,
+		lastPage,
+	))
 }
 
 // 2. CREATE CATEGORY
-func CreateCategory(c *gin.Context) {
-	// Menerima input x-www-form-urlencoded
-	name := c.PostForm("name")
-
-	// Validasi sederhana
-	if name == "" {
+func (h *CategoryHandler) CreateCategory(c *gin.Context) {
+	var req requests.CategoryRequest
+	// Bind dari x-www-form-urlencoded
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Nama kategori wajib diisi"))
 		return
 	}
 
-	// Generate Slug
-	slug := strings.ToLower(strings.ReplaceAll(name, " ", "-"))
-
-	var descriptionPtr *string // Default nil
-	descInput := c.PostForm("description")
-
-	// Jika input tidak kosong, ambil address-nya
-	if descInput != "" {
-		descriptionPtr = &descInput
-	}
-
-	category := domain.Category{
-		Name:        name,
-		Slug:        slug,
-		Description: descriptionPtr,
-	}
-
-	if err := config.DB.Create(&category).Error; err != nil {
+	res, err := h.svc.Create(req)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menyimpan kategori"))
 		return
 	}
 
-	responseDTO := responses.FromDomainToCategoryResponse(category)
-	c.JSON(http.StatusCreated, responses.SuccessResponse(201, "Kategori berhasil dibuat", responseDTO))
+	c.JSON(http.StatusCreated, responses.SuccessResponse(201, "Kategori berhasil dibuat", res))
 }
 
-// 3. DELETE CATEGORY
-func DeleteCategory(c *gin.Context) {
+// 3. UPDATE CATEGORY
+func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 	id := c.Param("id")
-	var category domain.Category
+	var req requests.CategoryRequest
 
-	// Cek apakah data ada
-	if err := config.DB.Where("id = ?", id).First(&category).Error; err != nil {
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Input tidak valid"))
+		return
+	}
+
+	res, err := h.svc.Update(id, req)
+	if err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Kategori tidak ditemukan"))
 		return
 	}
 
-	// Hard Delete (atau Soft Delete tergantung model Anda)
-	if err := config.DB.Delete(&category).Error; err != nil {
-		// Handle error Foreign Key constraint (jika kategori dipakai di berita)
-		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menghapus kategori. Pastikan tidak ada berita yang menggunakan kategori ini."))
+	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Kategori berhasil diupdate", res))
+}
+
+// 4. DELETE CATEGORY
+func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
+	id := c.Param("id")
+
+	if err := h.svc.Delete(id); err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menghapus kategori. Pastikan tidak ada rilis berita yang menggunakan kategori ini."))
 		return
 	}
 
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Kategori berhasil dihapus", nil))
-}
-
-// 4. UPDATE CATEGORY (Opsional - Bonus)
-func UpdateCategory(c *gin.Context) {
-	id := c.Param("id")
-	var category domain.Category
-
-	if err := config.DB.Where("id = ?", id).First(&category).Error; err != nil {
-		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Kategori tidak ditemukan"))
-		return
-	}
-
-	newName := c.PostForm("name")
-	if newName != "" {
-		category.Name = newName
-		category.Slug = strings.ToLower(strings.ReplaceAll(newName, " ", "-"))
-	}
-
-	if desc := c.PostForm("description"); desc != "" {
-		category.Description = &desc
-	}
-
-	config.DB.Save(&category)
-
-	responseDTO := responses.FromDomainToCategoryResponse(category)
-	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Kategori berhasil diupdate", responseDTO))
 }
