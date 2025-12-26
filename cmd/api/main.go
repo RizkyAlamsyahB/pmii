@@ -81,6 +81,7 @@ func main() {
 	aboutRepo := repository.NewAboutRepository(db)
 	siteSettingRepo := repository.NewSiteSettingRepository(db)
 	contactRepo := repository.NewContactRepository(db)
+	homeRepo := repository.NewHomeRepository(db)
 	documentRepo := repository.NewDocumentRepository(db)
 
 	// 7. Initialize Services (Business Logic Layer)
@@ -92,6 +93,7 @@ func main() {
 	siteSettingService := service.NewSiteSettingService(siteSettingRepo, cloudinaryService)
 	contactService := service.NewContactService(contactRepo)
 	publicAboutService := service.NewPublicAboutService(aboutRepo, memberRepo, contactRepo, cloudinaryService)
+	publicHomeService := service.NewPublicHomeService(homeRepo, testimonialRepo, cloudinaryService)
 	documentService := service.NewDocumentService(documentRepo, cloudinaryService)
 	publicDocumentService := service.NewPublicDocumentService(documentRepo, cloudinaryService)
 
@@ -105,6 +107,7 @@ func main() {
 	siteSettingHandler := handlers.NewSiteSettingHandler(siteSettingService)
 	contactHandler := handlers.NewContactHandler(contactService)
 	publicAboutHandler := handlers.NewPublicAboutHandler(publicAboutService)
+	publicHomeHandler := handlers.NewPublicHomeHandler(publicHomeService)
 	documentHandler := handlers.NewDocumentHandler(documentService)
 	publicDocumentHandler := handlers.NewPublicDocumentHandler(publicDocumentService)
 
@@ -118,7 +121,7 @@ func main() {
 	r.MaxMultipartMemory = 20 << 20 // 20 MB
 
 	// 10. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, documentHandler, publicDocumentHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port

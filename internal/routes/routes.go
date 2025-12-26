@@ -21,6 +21,7 @@ func SetupRoutes(
 	siteSettingHandler *handlers.SiteSettingHandler,
 	contactHandler *handlers.ContactHandler,
 	publicAboutHandler *handlers.PublicAboutHandler,
+	publicHomeHandler *handlers.PublicHomeHandler,
 	documentHandler *handlers.DocumentHandler,
 	publicDocumentHandler *handlers.PublicDocumentHandler,
 	allowedOrigins string,
@@ -71,7 +72,14 @@ func SetupRoutes(
 		v1.GET("/about/departments", publicAboutHandler.GetDepartments)                 // GET /v1/about/departments
 		v1.GET("/about/members/:department", publicAboutHandler.GetMembersByDepartment) // GET /v1/about/members/:department
 
-		// Public Routes - Documents/File Download (No Authentication Required)
+		// Public Routes - Home Page (No Authentication Required)
+		v1.GET("/home/hero", publicHomeHandler.GetHeroSection)               // GET /v1/home/hero
+		v1.GET("/home/latest-news", publicHomeHandler.GetLatestNewsSection)  // GET /v1/home/latest-news
+		v1.GET("/home/about-us", publicHomeHandler.GetAboutUsSection)        // GET /v1/home/about-us
+		v1.GET("/home/why", publicHomeHandler.GetWhySection)                 // GET /v1/home/why
+		v1.GET("/home/testimonial", publicHomeHandler.GetTestimonialSection) // GET /v1/home/testimonial
+		v1.GET("/home/faq", publicHomeHandler.GetFaqSection)                 // GET /v1/home/faq
+		v1.GET("/home/cta", publicHomeHandler.GetCtaSection)                 // GET /v1/home/cta
 		v1.GET("/documents", publicDocumentHandler.GetAllPublic)          // GET /v1/documents
 		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic) // GET /v1/documents/:type
 
@@ -170,5 +178,4 @@ func SetupRoutes(
 		}
 
 	}
-
 }

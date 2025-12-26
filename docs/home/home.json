@@ -1,0 +1,450 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "PMII API - Public Home Module",
+    "description": "API Contract untuk modul Public Home.\nSemua endpoint dalam modul ini **dapat diakses secara publik** tanpa autentikasi.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "PMII Development Team"
+    }
+  },
+  "servers": [
+    {
+      "url": "/v1",
+      "description": "API Version 1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Public Home",
+      "description": "Endpoint untuk konten halaman utama (Landing Page)"
+    }
+  ],
+  "paths": {
+    "/home/hero": {
+      "get": {
+        "tags": [
+          "Public Home"
+        ],
+        "summary": "Get Hero Section",
+        "description": "Mengambil data konten hero section (berita populer/headline).",
+        "operationId": "getHeroSection",
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data hero section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/HeroSectionResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/home/latest-news": {
+      "get": {
+        "tags": [
+          "Public Home"
+        ],
+        "summary": "Get Latest News Section",
+        "description": "Mengambil daftar berita terbaru untuk ditampilkan di landing page.",
+        "operationId": "getLatestNewsSection",
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data latest news",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/LatestNewsSectionResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/home/about-us": {
+      "get": {
+        "tags": [
+          "Public Home"
+        ],
+        "summary": "Get About Us Section",
+        "description": "Mengambil ringkasan informasi 'Tentang Kami' untuk landing page.",
+        "operationId": "getAboutUsSection",
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data about us section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AboutUsSectionResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/home/why": {
+      "get": {
+        "tags": [
+          "Public Home"
+        ],
+        "summary": "Get Why Section",
+        "description": "Mengambil data alasan 'Mengapa PMII?' atau nilai-nilai organisasi.",
+        "operationId": "getWhySection",
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data why section",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhySectionResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/home/testimonial": {
+      "get": {
+        "tags": [
+          "Public Home"
+        ],
+        "summary": "Get Testimonial Section",
+        "description": "Mengambil daftar testimoni dari alumni atau anggota.",
+        "operationId": "getTestimonialSection",
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data testimonial",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/TestimonialSectionResponse"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/home/faq": {
+      "get": {
+        "tags": [
+          "Public Home"
+        ],
+        "summary": "Get FAQ Section",
+        "description": "Mengambil daftar pertanyaan yang sering diajukan (FAQ).",
+        "operationId": "getFaqSection",
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data FAQ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/FaqSectionResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/home/cta": {
+      "get": {
+        "tags": [
+          "Public Home"
+        ],
+        "summary": "Get CTA Section",
+        "description": "Mengambil konten Call to Action (ajakan bergabung).",
+        "operationId": "getCtaSection",
+        "responses": {
+          "200": {
+            "description": "Berhasil mengambil data CTA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CtaSectionResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "message": {
+            "type": "string",
+            "example": "Berhasil mengambil data"
+          }
+        }
+      },
+      "SuccessResponse": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "HeroCategoryResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" }
+        }
+      },
+      "HeroSectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "slug": { "type": "string" },
+          "excerpt": { "type": "string" },
+          "imageUrl": { "type": "string" },
+          "publishedAt": { "type": "string" },
+          "category": { "$ref": "#/components/schemas/HeroCategoryResponse" },
+          "authorId": { "type": "integer" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "LatestNewsSectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "featured_image": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "total_views": { "type": "integer" }
+        }
+      },
+      "AboutUsSectionResponse": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "subtitle": { "type": "string" },
+          "description": { "type": "string" },
+          "image_uri": { "type": "string" }
+        }
+      },
+      "WhyItem": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "icon_uri": { "type": "string" }
+        }
+      },
+      "WhySectionResponse": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "subtitle": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/WhyItem" } }
+        }
+      },
+      "TestimonialSectionResponse": {
+        "type": "object",
+        "properties": {
+          "testimoni": { "type": "string" },
+          "name": { "type": "string" },
+          "status": { "type": "string" },
+          "career": { "type": "string" },
+          "image_uri": { "type": "string" }
+        }
+      },
+      "FaqItem": {
+        "type": "object",
+        "properties": {
+          "question": { "type": "string" },
+          "answer": { "type": "string" }
+        }
+      },
+      "FaqSectionResponse": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "subtitle": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/FaqItem" } }
+        }
+      },
+      "CtaSectionResponse": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "subtitle": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "InternalServerError": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "example": {
+              "meta": {
+                "code": 500,
+                "status": "error",
+                "message": "Terjadi kesalahan server"
+              },
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}
