@@ -68,19 +68,22 @@ func (h *PublicAboutHandler) GetMembersByDepartment(c *gin.Context) {
 	// Get department label
 	deptLabel := domain.MemberDepartment(department).GetLabel()
 
-	c.JSON(http.StatusOK, gin.H{
-		"meta": gin.H{
-			"code":       200,
-			"status":     "success",
-			"message":    "List of " + deptLabel,
-			"pagination": responses.PaginationMeta{Page: currentPage, Limit: limit, Total: total, LastPage: lastPage},
-		},
-		"data": gin.H{
-			"department":      department,
-			"departmentLabel": deptLabel,
-			"members":         members,
-		},
-	})
+	// Build data response
+	data := gin.H{
+		"department":      department,
+		"departmentLabel": deptLabel,
+		"members":         members,
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(
+		200,
+		"List of "+deptLabel,
+		data,
+		currentPage,
+		limit,
+		total,
+		lastPage,
+	))
 }
 
 // GetDepartments handles GET /v1/about/departments

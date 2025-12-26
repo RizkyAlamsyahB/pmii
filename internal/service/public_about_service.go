@@ -59,6 +59,11 @@ func (s *publicAboutService) GetAboutPage(ctx context.Context, limit int, search
 			continue // Skip department on error
 		}
 
+		// Jika ada search query, skip department yang tidak memiliki hasil
+		if search != "" && total == 0 {
+			continue
+		}
+
 		// Calculate last page
 		lastPage := int(total) / limit
 		if int(total)%limit != 0 {

@@ -22,6 +22,8 @@ func SetupRoutes(
 	contactHandler *handlers.ContactHandler,
 	publicAboutHandler *handlers.PublicAboutHandler,
 	publicHomeHandler *handlers.PublicHomeHandler,
+	documentHandler *handlers.DocumentHandler,
+	publicDocumentHandler *handlers.PublicDocumentHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -78,6 +80,8 @@ func SetupRoutes(
 		v1.GET("/home/testimonial", publicHomeHandler.GetTestimonialSection) // GET /v1/home/testimonial
 		v1.GET("/home/faq", publicHomeHandler.GetFaqSection)                 // GET /v1/home/faq
 		v1.GET("/home/cta", publicHomeHandler.GetCtaSection)                 // GET /v1/home/cta
+		v1.GET("/documents", publicDocumentHandler.GetAllPublic)          // GET /v1/documents
+		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic) // GET /v1/documents/:type
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
@@ -117,6 +121,14 @@ func SetupRoutes(
 			// Contact Routes - Admin Only (singleton - only GET and PUT)
 			adminRoutes.GET("/contact", contactHandler.Get)    // GET /v1/admin/contact
 			adminRoutes.PUT("/contact", contactHandler.Update) // PUT /v1/admin/contact
+
+			// Document Routes - Admin Only
+			adminRoutes.GET("/documents/types", documentHandler.GetTypes) // GET /v1/admin/documents/types
+			adminRoutes.POST("/documents", documentHandler.Create)        // POST /v1/admin/documents
+			adminRoutes.GET("/documents", documentHandler.GetAll)         // GET /v1/admin/documents
+			adminRoutes.GET("/documents/:id", documentHandler.GetByID)    // GET /v1/admin/documents/:id
+			adminRoutes.PUT("/documents/:id", documentHandler.Update)     // PUT /v1/admin/documents/:id
+			adminRoutes.DELETE("/documents/:id", documentHandler.Delete)  // DELETE /v1/admin/documents/:id
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)

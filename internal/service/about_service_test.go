@@ -33,9 +33,13 @@ func (m *MockAboutRepository) Upsert(about *domain.About) error {
 
 // MockAboutCloudinaryService adalah mock untuk CloudinaryService (untuk about tests)
 type MockAboutCloudinaryService struct {
-	UploadImageFunc func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
-	DeleteImageFunc func(ctx context.Context, folder string, filename string) error
-	GetImageURLFunc func(folder string, filename string) string
+	UploadImageFunc    func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteImageFunc    func(ctx context.Context, folder string, filename string) error
+	GetImageURLFunc    func(folder string, filename string) string
+	UploadFileFunc     func(ctx context.Context, folder string, file *multipart.FileHeader) (string, error)
+	DeleteFileFunc     func(ctx context.Context, folder string, filename string) error
+	GetFileURLFunc     func(folder string, filename string) string
+	GetDownloadURLFunc func(folder string, filename string) string
 }
 
 func (m *MockAboutCloudinaryService) UploadImage(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
@@ -55,6 +59,34 @@ func (m *MockAboutCloudinaryService) DeleteImage(ctx context.Context, folder str
 func (m *MockAboutCloudinaryService) GetImageURL(folder string, filename string) string {
 	if m.GetImageURLFunc != nil {
 		return m.GetImageURLFunc(folder, filename)
+	}
+	return ""
+}
+
+func (m *MockAboutCloudinaryService) UploadFile(ctx context.Context, folder string, file *multipart.FileHeader) (string, error) {
+	if m.UploadFileFunc != nil {
+		return m.UploadFileFunc(ctx, folder, file)
+	}
+	return "", nil
+}
+
+func (m *MockAboutCloudinaryService) DeleteFile(ctx context.Context, folder string, filename string) error {
+	if m.DeleteFileFunc != nil {
+		return m.DeleteFileFunc(ctx, folder, filename)
+	}
+	return nil
+}
+
+func (m *MockAboutCloudinaryService) GetFileURL(folder string, filename string) string {
+	if m.GetFileURLFunc != nil {
+		return m.GetFileURLFunc(folder, filename)
+	}
+	return ""
+}
+
+func (m *MockAboutCloudinaryService) GetDownloadURL(folder string, filename string) string {
+	if m.GetDownloadURLFunc != nil {
+		return m.GetDownloadURLFunc(folder, filename)
 	}
 	return ""
 }

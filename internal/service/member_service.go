@@ -14,7 +14,7 @@ import (
 // MemberService interface untuk business logic member
 type MemberService interface {
 	Create(ctx context.Context, req requests.CreateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error)
-	GetAll(ctx context.Context, page, limit int) ([]responses.MemberResponse, int, int, int64, error)
+	GetAll(ctx context.Context, page, limit int, search string) ([]responses.MemberResponse, int, int, int64, error)
 	GetByID(ctx context.Context, id int) (*responses.MemberResponse, error)
 	Update(ctx context.Context, id int, req requests.UpdateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error)
 	Delete(ctx context.Context, id int) error
@@ -68,8 +68,8 @@ func (s *memberService) Create(ctx context.Context, req requests.CreateMemberReq
 	return s.toResponseDTO(member), nil
 }
 
-// GetAll mengambil semua member dengan pagination
-func (s *memberService) GetAll(ctx context.Context, page, limit int) ([]responses.MemberResponse, int, int, int64, error) {
+// GetAll mengambil semua member dengan pagination dan search
+func (s *memberService) GetAll(ctx context.Context, page, limit int, search string) ([]responses.MemberResponse, int, int, int64, error) {
 	// Set default values
 	if page < 1 {
 		page = 1
@@ -78,7 +78,7 @@ func (s *memberService) GetAll(ctx context.Context, page, limit int) ([]response
 		limit = 10
 	}
 
-	members, total, err := s.memberRepo.FindAll(page, limit)
+	members, total, err := s.memberRepo.FindAll(page, limit, search)
 	if err != nil {
 		return nil, 0, 0, 0, errors.New("gagal mengambil data member")
 	}
@@ -87,6 +87,16 @@ func (s *memberService) GetAll(ctx context.Context, page, limit int) ([]response
 	lastPage := int(total) / limit
 	if int(total)%limit != 0 {
 		lastPage++
+	}
+
+	// Auto-clamp: jika page melebihi lastPage dan ada data, clamp ke lastPage
+	if page > lastPage && lastPage > 0 {
+		page = lastPage
+		// Re-fetch dengan page yang sudah di-clamp
+		members, _, err = s.memberRepo.FindAll(page, limit, search)
+		if err != nil {
+			return nil, 0, 0, 0, errors.New("gagal mengambil data member")
+		}
 	}
 
 	// Convert to response DTOs
@@ -140,7 +150,7 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 	if req.Department != "" {
 		member.Department = domain.MemberDepartment(req.Department)
 	}
-	if req.SocialLinks != nil && len(req.SocialLinks) > 0 {
+	if len(req.SocialLinks) > 0 {
 		member.SocialLinks = req.SocialLinks
 	}
 	if req.IsActive != nil {
