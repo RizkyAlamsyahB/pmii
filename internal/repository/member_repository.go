@@ -8,7 +8,7 @@ import (
 // MemberRepository interface untuk data access member
 type MemberRepository interface {
 	Create(member *domain.Member) error
-	FindAll(page, limit int) ([]domain.Member, int64, error)
+	FindAll(page, limit int, search string) ([]domain.Member, int64, error)
 	FindByID(id int) (*domain.Member, error)
 	Update(member *domain.Member) error
 	Delete(id int) error
@@ -31,21 +31,32 @@ func (r *memberRepository) Create(member *domain.Member) error {
 	return r.db.Create(member).Error
 }
 
-// FindAll mengambil semua member dengan pagination
-func (r *memberRepository) FindAll(page, limit int) ([]domain.Member, int64, error) {
+// FindAll mengambil semua member dengan pagination dan search
+func (r *memberRepository) FindAll(page, limit int, search string) ([]domain.Member, int64, error) {
 	var members []domain.Member
 	var total int64
 
+	query := r.db.Model(&domain.Member{})
+
+	// Search by full_name, position, department, atau social_links
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		query = query.Where(
+			"full_name ILIKE ? OR position ILIKE ? OR department::text ILIKE ? OR social_links::text ILIKE ?",
+			searchPattern, searchPattern, searchPattern, searchPattern,
+		)
+	}
+
 	// Count total records
-	if err := r.db.Model(&domain.Member{}).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	// Calculate offset
 	offset := (page - 1) * limit
 
-	// Get paginated data (no ordering, natural database order)
-	err := r.db.Limit(limit).Offset(offset).Find(&members).Error
+	// Get paginated data
+	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&members).Error
 	return members, total, err
 }
 
@@ -91,7 +102,7 @@ func (r *memberRepository) FindActiveWithPagination(page, limit int, search stri
 	offset := (page - 1) * limit
 
 	// Get paginated data
-	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&members).Error
+	err := query.Order("created_at ASC").Limit(limit).Offset(offset).Find(&members).Error
 	return members, total, err
 }
 
@@ -117,6 +128,6 @@ func (r *memberRepository) FindActiveByDepartment(department string, page, limit
 	offset := (page - 1) * limit
 
 	// Get paginated data
-	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&members).Error
+	err := query.Order("created_at ASC").Limit(limit).Offset(offset).Find(&members).Error
 	return members, total, err
 }

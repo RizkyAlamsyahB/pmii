@@ -26,6 +26,11 @@ func (h *TestimonialHandler) Create(c *gin.Context) {
 
 	// Bind form data
 	if err := c.ShouldBind(&req); err != nil {
+		errors := FormatValidationErrors(err)
+		if len(errors) > 0 {
+			c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(errors))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Data tidak valid"))
 		return
 	}
@@ -58,8 +63,9 @@ func (h *TestimonialHandler) GetAll(c *gin.Context) {
 	// Parse query params
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("search")
 
-	testimonials, currentPage, lastPage, total, err := h.testimonialService.GetAll(c.Request.Context(), page, limit)
+	testimonials, currentPage, lastPage, total, err := h.testimonialService.GetAll(c.Request.Context(), page, limit, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
@@ -99,6 +105,11 @@ func (h *TestimonialHandler) Update(c *gin.Context) {
 
 	// Bind form data
 	if err := c.ShouldBind(&req); err != nil {
+		errors := FormatValidationErrors(err)
+		if len(errors) > 0 {
+			c.JSON(http.StatusBadRequest, responses.ValidationErrorResponse(errors))
+			return
+		}
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Data tidak valid"))
 		return
 	}
@@ -119,6 +130,10 @@ func (h *TestimonialHandler) Update(c *gin.Context) {
 	// Call service
 	testimonial, err := h.testimonialService.Update(c.Request.Context(), id, req, photoFile)
 	if err != nil {
+		if err.Error() == "testimonial tidak ditemukan" {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+			return
+		}
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}
@@ -137,6 +152,10 @@ func (h *TestimonialHandler) Delete(c *gin.Context) {
 
 	// Call service
 	if err := h.testimonialService.Delete(c.Request.Context(), id); err != nil {
+		if err.Error() == "testimonial tidak ditemukan" {
+			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
+			return
+		}
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
 	}

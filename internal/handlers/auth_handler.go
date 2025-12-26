@@ -37,9 +37,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 				switch e.Tag() {
 				case "required":
-					if fieldName == "email" {
+					switch fieldName {
+					case "email":
 						message = "Email wajib diisi"
-					} else if fieldName == "password" {
+					case "password":
 						message = "Password wajib diisi"
 					}
 				case "email":
@@ -118,9 +119,10 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 
 				switch e.Tag() {
 				case "required":
-					if fieldName == "oldpassword" {
+					switch fieldName {
+					case "oldpassword":
 						message = "Password lama wajib diisi"
-					} else if fieldName == "newpassword" {
+					case "newpassword":
 						message = "Password baru wajib diisi"
 					}
 				case "min":
