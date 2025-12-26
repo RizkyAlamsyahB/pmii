@@ -23,6 +23,9 @@ func SetupRoutes(
 	siteSettingHandler *handlers.SiteSettingHandler,
 	contactHandler *handlers.ContactHandler,
 	publicAboutHandler *handlers.PublicAboutHandler,
+	publicHomeHandler *handlers.PublicHomeHandler,
+	documentHandler *handlers.DocumentHandler,
+	publicDocumentHandler *handlers.PublicDocumentHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -31,6 +34,18 @@ func SetupRoutes(
 	newsRepo := repository.NewNewsRepository()
 	newsSvc := service.NewNewsService(newsRepo)
 	newsHandler := handlers.NewNewsHandler(newsSvc)
+	// --- Inisialisasi Modul Post (Clean Architecture) ---
+	postRepo := repository.NewPostRepository()
+	postSvc := service.NewPostService(postRepo)
+	postHandler := handlers.NewPostHandler(postSvc)
+
+	catRepo := repository.NewCategoryRepository()
+	catSvc := service.NewCategoryService(catRepo)
+	catHandler := handlers.NewCategoryHandler(catSvc)
+
+	tagRepo := repository.NewTagRepository()
+	tagSvc := service.NewTagService(tagRepo)
+	tagHandler := handlers.NewTagHandler(tagSvc)
 
 	// Global Middlewares
 	r.Use(middleware.Recovery())
@@ -80,6 +95,17 @@ func SetupRoutes(
 		v1.GET("/about/departments", publicAboutHandler.GetDepartments)                 // GET /v1/about/departments
 		v1.GET("/about/members/:department", publicAboutHandler.GetMembersByDepartment) // GET /v1/about/members/:department
 
+		// Public Routes - Home Page (No Authentication Required)
+		v1.GET("/home/hero", publicHomeHandler.GetHeroSection)               // GET /v1/home/hero
+		v1.GET("/home/latest-news", publicHomeHandler.GetLatestNewsSection)  // GET /v1/home/latest-news
+		v1.GET("/home/about-us", publicHomeHandler.GetAboutUsSection)        // GET /v1/home/about-us
+		v1.GET("/home/why", publicHomeHandler.GetWhySection)                 // GET /v1/home/why
+		v1.GET("/home/testimonial", publicHomeHandler.GetTestimonialSection) // GET /v1/home/testimonial
+		v1.GET("/home/faq", publicHomeHandler.GetFaqSection)                 // GET /v1/home/faq
+		v1.GET("/home/cta", publicHomeHandler.GetCtaSection)                 // GET /v1/home/cta
+		v1.GET("/documents", publicDocumentHandler.GetAllPublic)          // GET /v1/documents
+		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic) // GET /v1/documents/:type
+
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
 		adminRoutes.Use(middleware.AuthMiddleware(), middleware.RequireRole("1"))
@@ -118,6 +144,14 @@ func SetupRoutes(
 			// Contact Routes - Admin Only (singleton - only GET and PUT)
 			adminRoutes.GET("/contact", contactHandler.Get)    // GET /v1/admin/contact
 			adminRoutes.PUT("/contact", contactHandler.Update) // PUT /v1/admin/contact
+
+			// Document Routes - Admin Only
+			adminRoutes.GET("/documents/types", documentHandler.GetTypes) // GET /v1/admin/documents/types
+			adminRoutes.POST("/documents", documentHandler.Create)        // POST /v1/admin/documents
+			adminRoutes.GET("/documents", documentHandler.GetAll)         // GET /v1/admin/documents
+			adminRoutes.GET("/documents/:id", documentHandler.GetByID)    // GET /v1/admin/documents/:id
+			adminRoutes.PUT("/documents/:id", documentHandler.Update)     // PUT /v1/admin/documents/:id
+			adminRoutes.DELETE("/documents/:id", documentHandler.Delete)  // DELETE /v1/admin/documents/:id
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
@@ -130,42 +164,28 @@ func SetupRoutes(
 
 		posts := v1.Group("/posts")
 		{
-			posts.POST("", handlers.CreatePost)       // Create
-			posts.GET("", handlers.GetPosts)          // Read All
-			posts.GET("/:id", handlers.GetPost)       // Read One
-			posts.PUT("/:id", handlers.UpdatePost)    // Update
-			posts.DELETE("/:id", handlers.DeletePost) // Delete
+			posts.GET("", postHandler.GetPosts)
+			posts.POST("", postHandler.CreatePost)
+			posts.GET("/:id", postHandler.GetPost)
+			posts.PUT("/:id", postHandler.UpdatePost)
+			posts.DELETE("/:id", postHandler.DeletePost)
 		}
+
 		categories := v1.Group("/categories")
 		{
-			// Create (POST /v1/categories)
-			categories.POST("", handlers.CreateCategory)
-
-			// Read All (GET /v1/categories)
-			categories.GET("", handlers.GetCategories)
-
-			// Update (PUT /v1/categories/:id) -> Jika ingin pakai
-			categories.PUT("/:id", handlers.UpdateCategory)
-
-			// Delete (DELETE /v1/categories/:id)
-			categories.DELETE("/:id", handlers.DeleteCategory)
+			categories.GET("", catHandler.GetCategories)
+			categories.POST("", catHandler.CreateCategory)
+			categories.PUT("/:id", catHandler.UpdateCategory)
+			categories.DELETE("/:id", catHandler.DeleteCategory)
 		}
 
 		tags := v1.Group("/tags")
 		{
-			// Create (POST /v1/tags)
-			tags.POST("", handlers.CreateTag)
-
-			// Read All (GET /v1/tags)
-			tags.GET("", handlers.GetTags)
-
-			// Update (PUT /v1/tags/:id)
-			tags.PUT("/:id", handlers.UpdateTag)
-
-			// Delete (DELETE /v1/tags/:id)
-			tags.DELETE("/:id", handlers.DeleteTag)
+			tags.GET("", tagHandler.GetTags)
+			tags.POST("", tagHandler.CreateTag)
+			tags.PUT("/:id", tagHandler.UpdateTag)
+			tags.DELETE("/:id", tagHandler.DeleteTag)
 		}
 
 	}
-
 }

@@ -81,6 +81,8 @@ func main() {
 	aboutRepo := repository.NewAboutRepository(db)
 	siteSettingRepo := repository.NewSiteSettingRepository(db)
 	contactRepo := repository.NewContactRepository(db)
+	homeRepo := repository.NewHomeRepository(db)
+	documentRepo := repository.NewDocumentRepository(db)
 
 	// 7. Initialize Services (Business Logic Layer)
 	authService := service.NewAuthService(userRepo)
@@ -91,6 +93,9 @@ func main() {
 	siteSettingService := service.NewSiteSettingService(siteSettingRepo, cloudinaryService)
 	contactService := service.NewContactService(contactRepo)
 	publicAboutService := service.NewPublicAboutService(aboutRepo, memberRepo, contactRepo, cloudinaryService)
+	publicHomeService := service.NewPublicHomeService(homeRepo, testimonialRepo, cloudinaryService)
+	documentService := service.NewDocumentService(documentRepo, cloudinaryService)
+	publicDocumentService := service.NewPublicDocumentService(documentRepo, cloudinaryService)
 
 	// 8. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)
@@ -102,6 +107,9 @@ func main() {
 	siteSettingHandler := handlers.NewSiteSettingHandler(siteSettingService)
 	contactHandler := handlers.NewContactHandler(contactService)
 	publicAboutHandler := handlers.NewPublicAboutHandler(publicAboutService)
+	publicHomeHandler := handlers.NewPublicHomeHandler(publicHomeService)
+	documentHandler := handlers.NewDocumentHandler(documentService)
+	publicDocumentHandler := handlers.NewPublicDocumentHandler(publicDocumentService)
 
 	// 9. Setup Gin Router
 	if cfg.Server.Environment == "production" {
@@ -109,8 +117,11 @@ func main() {
 	}
 	r := gin.Default()
 
+	// Set max multipart memory to 20MB (untuk file upload besar)
+	r.MaxMultipartMemory = 20 << 20 // 20 MB
+
 	// 10. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port
