@@ -42,3 +42,26 @@ func (h *NewsHandler) GetNewsDetail(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, responses.SuccessResponse(200, "Detail berita ditemukan", data))
 }
+
+func (h *NewsHandler) GetNewsByCategory(c *gin.Context) {
+	categorySlug := c.Param("slug") // mengambil "opini" dari URL
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	data, lastPage, total, err := h.svc.FetchNewsByCategory(categorySlug, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal memuat berita kategori"))
+		return
+	}
+
+	// Jika data kosong, Anda bisa memilih kirim array kosong atau 404
+	c.JSON(http.StatusOK, responses.SuccessResponseWithPagination(
+		200,
+		"Berita kategori "+categorySlug+" berhasil dimuat",
+		data,
+		page,
+		limit,
+		total,
+		lastPage,
+	))
+}

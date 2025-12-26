@@ -87,8 +87,9 @@ func SetupRoutes(
 			auth.POST("/change-password", middleware.AuthMiddleware(), authHandler.ChangePassword)
 		}
 
-		v1.GET("/news", newsHandler.GetNewsList)         // GET /v1/news
-		v1.GET("/news/:slug", newsHandler.GetNewsDetail) // GET /v1/news/:slug
+		v1.GET("/news", newsHandler.GetNewsList)                   // GET /v1/news
+		v1.GET("/news/:slug", newsHandler.GetNewsDetail)           // GET /v1/news/:slug
+		v1.GET("/categories/:slug", newsHandler.GetNewsByCategory) // GET /v1/categories/:slug
 
 		// Public Routes - About Page (No Authentication Required)
 		v1.GET("/about", publicAboutHandler.GetAboutPage)                               // GET /v1/about
