@@ -1,7 +1,6 @@
 -- Create ENUM types for activity logs
 CREATE TYPE "activity_action_type" AS ENUM (
   'create',
-  'read',
   'update',
   'delete',
   'login',

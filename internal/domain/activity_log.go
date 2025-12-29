@@ -7,7 +7,6 @@ type ActivityActionType string
 
 const (
 	ActionCreate ActivityActionType = "create"
-	ActionRead   ActivityActionType = "read"
 	ActionUpdate ActivityActionType = "update"
 	ActionDelete ActivityActionType = "delete"
 	ActionLogin  ActivityActionType = "login"
