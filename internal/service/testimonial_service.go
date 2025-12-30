@@ -26,10 +26,10 @@ type CloudinaryService interface {
 
 // TestimonialService interface untuk business logic testimonial
 type TestimonialService interface {
-	Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
+	Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error)
 	GetAll(ctx context.Context, page, limit int, search string) ([]responses.TestimonialResponse, int, int, int64, error)
-	GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error)
-	Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
+	GetByID(ctx context.Context, id int) (*responses.TestimonialDetailResponse, error)
+	Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error)
 	Delete(ctx context.Context, id int) error
 }
 
@@ -47,7 +47,7 @@ func NewTestimonialService(testimonialRepo repository.TestimonialRepository, clo
 }
 
 // Create membuat testimonial baru dengan upload foto ke Cloudinary
-func (s *testimonialService) Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error) {
+func (s *testimonialService) Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error) {
 	// Upload photo ke Cloudinary (jika ada)
 	var photoFilename *string
 	if photoFile != nil {
@@ -88,7 +88,7 @@ func (s *testimonialService) Create(ctx context.Context, req requests.CreateTest
 	}
 
 	// Convert to response DTO
-	return s.toResponseDTO(testimonial), nil
+	return s.toDetailResponseDTO(testimonial), nil
 }
 
 // GetAll mengambil semua testimonial dengan pagination dan search
@@ -132,17 +132,17 @@ func (s *testimonialService) GetAll(ctx context.Context, page, limit int, search
 }
 
 // GetByID mengambil testimonial berdasarkan ID
-func (s *testimonialService) GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error) {
+func (s *testimonialService) GetByID(ctx context.Context, id int) (*responses.TestimonialDetailResponse, error) {
 	testimonial, err := s.testimonialRepo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("testimonial tidak ditemukan")
 	}
 
-	return s.toResponseDTO(testimonial), nil
+	return s.toDetailResponseDTO(testimonial), nil
 }
 
 // Update mengupdate testimonial dengan optional upload foto baru
-func (s *testimonialService) Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error) {
+func (s *testimonialService) Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error) {
 	// Ambil testimonial existing
 	testimonial, err := s.testimonialRepo.FindByID(id)
 	if err != nil {
@@ -194,7 +194,7 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 		_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *oldPhotoURI)
 	}
 
-	return s.toResponseDTO(testimonial), nil
+	return s.toDetailResponseDTO(testimonial), nil
 }
 
 // Delete menghapus testimonial dan foto dari Cloudinary
@@ -218,7 +218,7 @@ func (s *testimonialService) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-// toResponseDTO converts domain.Testimonial to responses.TestimonialResponse
+// toResponseDTO converts domain.Testimonial to responses.TestimonialResponse (for list)
 func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.TestimonialResponse {
 	var imageURL string
 	if t.PhotoURI != nil {
@@ -226,6 +226,22 @@ func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.Tes
 	}
 
 	return &responses.TestimonialResponse{
+		ID:       t.ID,
+		ImageUrl: imageURL,
+		Name:     t.Name,
+		Position: t.Position,
+		Content:  t.Content,
+	}
+}
+
+// toDetailResponseDTO converts domain.Testimonial to responses.TestimonialDetailResponse (for detail/edit)
+func (s *testimonialService) toDetailResponseDTO(t *domain.Testimonial) *responses.TestimonialDetailResponse {
+	var imageURL string
+	if t.PhotoURI != nil {
+		imageURL = s.cloudinaryService.GetImageURL("testimonials", *t.PhotoURI)
+	}
+
+	return &responses.TestimonialDetailResponse{
 		ID:           t.ID,
 		Name:         t.Name,
 		Organization: t.Organization,
@@ -233,6 +249,5 @@ func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.Tes
 		Content:      t.Content,
 		ImageUrl:     imageURL,
 		IsActive:     t.IsActive,
-		CreatedAt:    t.CreatedAt,
 	}
 }
