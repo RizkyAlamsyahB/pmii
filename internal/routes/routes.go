@@ -47,6 +47,11 @@ func SetupRoutes(
 	tagSvc := service.NewTagService(tagRepo)
 	tagHandler := handlers.NewTagHandler(tagSvc)
 
+	// --- Activity Log untuk Audit ---
+	activityLogRepo := repository.NewActivityLogRepository()
+	activityLogSvc := service.NewActivityLogService(activityLogRepo)
+	activityLogHandler := handlers.NewActivityLogHandler(activityLogSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
@@ -104,8 +109,8 @@ func SetupRoutes(
 		v1.GET("/home/testimonial", publicHomeHandler.GetTestimonialSection) // GET /v1/home/testimonial
 		v1.GET("/home/faq", publicHomeHandler.GetFaqSection)                 // GET /v1/home/faq
 		v1.GET("/home/cta", publicHomeHandler.GetCtaSection)                 // GET /v1/home/cta
-		v1.GET("/documents", publicDocumentHandler.GetAllPublic)          // GET /v1/documents
-		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic) // GET /v1/documents/:type
+		v1.GET("/documents", publicDocumentHandler.GetAllPublic)             // GET /v1/documents
+		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic)    // GET /v1/documents/:type
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
@@ -153,6 +158,9 @@ func SetupRoutes(
 			adminRoutes.GET("/documents/:id", documentHandler.GetByID)    // GET /v1/admin/documents/:id
 			adminRoutes.PUT("/documents/:id", documentHandler.Update)     // PUT /v1/admin/documents/:id
 			adminRoutes.DELETE("/documents/:id", documentHandler.Delete)  // DELETE /v1/admin/documents/:id
+
+			// Activity Log Routes - Admin Only
+			adminRoutes.GET("/activity-logs", activityLogHandler.GetActivityLogs) // GET /v1/admin/activity-logs
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
