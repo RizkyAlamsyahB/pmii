@@ -20,6 +20,7 @@ type ActivityLogFilter struct {
 
 type ActivityLogRepository interface {
 	GetActivityLogs(offset, limit int, filter ActivityLogFilter) ([]responses.ActivityLogResponse, int64, error)
+	Create(log *domain.ActivityLog) error
 }
 
 type activityLogRepository struct{}
@@ -93,4 +94,9 @@ func (r *activityLogRepository) GetActivityLogs(offset, limit int, filter Activi
 	}
 
 	return result, total, nil
+}
+
+// Create inserts a new activity log entry
+func (r *activityLogRepository) Create(log *domain.ActivityLog) error {
+	return config.DB.Create(log).Error
 }

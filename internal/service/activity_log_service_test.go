@@ -13,6 +13,7 @@ import (
 // MockActivityLogRepository adalah mock untuk ActivityLogRepository
 type MockActivityLogRepository struct {
 	GetActivityLogsFunc func(offset, limit int, filter repository.ActivityLogFilter) ([]responses.ActivityLogResponse, int64, error)
+	CreateFunc          func(log *domain.ActivityLog) error
 }
 
 func (m *MockActivityLogRepository) GetActivityLogs(offset, limit int, filter repository.ActivityLogFilter) ([]responses.ActivityLogResponse, int64, error) {
@@ -20,6 +21,13 @@ func (m *MockActivityLogRepository) GetActivityLogs(offset, limit int, filter re
 		return m.GetActivityLogsFunc(offset, limit, filter)
 	}
 	return nil, 0, errors.New("mock not configured")
+}
+
+func (m *MockActivityLogRepository) Create(log *domain.ActivityLog) error {
+	if m.CreateFunc != nil {
+		return m.CreateFunc(log)
+	}
+	return nil
 }
 
 // TestGetActivityLogs_Success menguji GetActivityLogs yang berhasil

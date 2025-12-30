@@ -30,31 +30,32 @@ func SetupRoutes(
 	environment string,
 ) {
 
+	// --- Activity Log untuk Audit (inisialisasi pertama karena digunakan banyak service) ---
+	activityLogRepo := repository.NewActivityLogRepository()
+	activityLogSvc := service.NewActivityLogService(activityLogRepo)
+	activityLogHandler := handlers.NewActivityLogHandler(activityLogSvc)
+
 	// Inisialisasi Dependency untuk News Publik
 	newsRepo := repository.NewNewsRepository()
 	newsSvc := service.NewNewsService(newsRepo)
 	newsHandler := handlers.NewNewsHandler(newsSvc)
 	// --- Inisialisasi Modul Post (Clean Architecture) ---
 	postRepo := repository.NewPostRepository()
-	postSvc := service.NewPostService(postRepo)
+	postSvc := service.NewPostService(postRepo, activityLogRepo)
 	postHandler := handlers.NewPostHandler(postSvc)
 
 	catRepo := repository.NewCategoryRepository()
-	catSvc := service.NewCategoryService(catRepo)
+	catSvc := service.NewCategoryService(catRepo, activityLogRepo)
 	catHandler := handlers.NewCategoryHandler(catSvc)
 
 	tagRepo := repository.NewTagRepository()
-	tagSvc := service.NewTagService(tagRepo)
+	tagSvc := service.NewTagService(tagRepo, activityLogRepo)
 	tagHandler := handlers.NewTagHandler(tagSvc)
-
-	// --- Activity Log untuk Audit ---
-	activityLogRepo := repository.NewActivityLogRepository()
-	activityLogSvc := service.NewActivityLogService(activityLogRepo)
-	activityLogHandler := handlers.NewActivityLogHandler(activityLogSvc)
 
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
+	r.Use(middleware.RequestInfoMiddleware()) // Inject IP and User-Agent for activity logging
 
 	// Rate Limiter untuk login endpoint (60 request per menit = 1 req/s, burst 60)
 	loginLimiter := middleware.NewRateLimiter(rate.Limit(1), 60)

@@ -24,11 +24,16 @@ type UserService interface {
 type userService struct {
 	userRepo          repository.UserRepository
 	cloudinaryService CloudinaryService
+	activityLogRepo   repository.ActivityLogRepository
 }
 
 // NewUserService constructor untuk UserService
-func NewUserService(userRepo repository.UserRepository, cloudinaryService CloudinaryService) UserService {
-	return &userService{userRepo: userRepo, cloudinaryService: cloudinaryService}
+func NewUserService(userRepo repository.UserRepository, cloudinaryService CloudinaryService, activityLogRepo repository.ActivityLogRepository) UserService {
+	return &userService{
+		userRepo:          userRepo,
+		cloudinaryService: cloudinaryService,
+		activityLogRepo:   activityLogRepo,
+	}
 }
 
 // resolvePhotoURL converts photo filename to full Cloudinary URL
@@ -134,6 +139,15 @@ func (s *userService) CreateUser(ctx context.Context, req *requests.CreateUserRe
 		user.PhotoURI = &fullPhotoURL
 	}
 
+	// Log activity - Create User
+	s.logActivity(ctx, domain.ActionCreate, domain.ModuleUser, "Membuat user baru: "+user.FullName, nil, map[string]any{
+		"id":        user.ID,
+		"full_name": user.FullName,
+		"email":     user.Email,
+		"role":      user.Role,
+		"is_active": user.IsActive,
+	}, &user.ID)
+
 	return user, nil
 }
 
@@ -220,16 +234,34 @@ func (s *userService) UpdateUser(ctx context.Context, id int, req *requests.Upda
 		s.resolvePhotoURL(user)
 	}
 
+	// Log activity - Update User (with old values tracking)
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleUser, "Mengupdate user: "+user.FullName, nil, map[string]any{
+		"id":        user.ID,
+		"full_name": user.FullName,
+		"email":     user.Email,
+		"role":      user.Role,
+		"is_active": user.IsActive,
+	}, &user.ID)
+
 	return user, nil
 }
 
 // DeleteUser menghapus user berdasarkan ID (soft delete)
 func (s *userService) DeleteUser(ctx context.Context, id int) error {
 	// Cek apakah user ada dan ambil info foto
-	_, err := s.userRepo.FindByID(id)
+	user, err := s.userRepo.FindByID(id)
 	if err != nil {
 		return ErrUserNotFound
 	}
+
+	// Log activity sebelum delete
+	s.logActivity(ctx, domain.ActionDelete, domain.ModuleUser, "Menghapus user: "+user.FullName, map[string]any{
+		"id":        user.ID,
+		"full_name": user.FullName,
+		"email":     user.Email,
+		"role":      user.Role,
+		"is_active": user.IsActive,
+	}, nil, &user.ID)
 
 	// Hapus user (soft delete via GORM)
 	if err := s.userRepo.Delete(id); err != nil {
@@ -254,3 +286,37 @@ var (
 	ErrUserDeleteFailed   = errors.New("gagal menghapus user")
 	ErrUserFetchFailed    = errors.New("gagal mengambil data user")
 )
+
+// logActivity helper untuk mencatat activity log
+func (s *userService) logActivity(ctx context.Context, actionType domain.ActivityActionType, module domain.ActivityModuleType, description string, oldValue, newValue map[string]any, targetID *int) {
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		return // Skip if no user in context
+	}
+
+	ipAddress := utils.GetIPAddress(ctx)
+	userAgent := utils.GetUserAgent(ctx)
+
+	var ipPtr, uaPtr *string
+	if ipAddress != "" {
+		ipPtr = &ipAddress
+	}
+	if userAgent != "" {
+		uaPtr = &userAgent
+	}
+
+	log := &domain.ActivityLog{
+		UserID:      userID,
+		ActionType:  actionType,
+		Module:      module,
+		Description: &description,
+		TargetID:    targetID,
+		OldValue:    oldValue,
+		NewValue:    newValue,
+		IPAddress:   ipPtr,
+		UserAgent:   uaPtr,
+	}
+
+	// Ignore error - logging should not affect main operation
+	_ = s.activityLogRepo.Create(log)
+}
