@@ -72,9 +72,14 @@ func (s *memberService) Create(ctx context.Context, req requests.CreateMemberReq
 
 	// Log activity - Create Member
 	s.logActivity(ctx, domain.ActionCreate, domain.ModuleMembers, "Membuat member baru: "+member.FullName, nil, map[string]any{
-		"id":        member.ID,
-		"full_name": member.FullName,
-		"position":  member.Position,
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
+		"created_at":   member.CreatedAt,
 	}, &member.ID)
 
 	return resp, nil
@@ -218,9 +223,14 @@ func (s *memberService) Delete(ctx context.Context, id int) error {
 
 	// Log activity sebelum delete
 	s.logActivity(ctx, domain.ActionDelete, domain.ModuleMembers, "Menghapus member: "+member.FullName, map[string]any{
-		"id":        member.ID,
-		"full_name": member.FullName,
-		"position":  member.Position,
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
+		"created_at":   member.CreatedAt,
 	}, nil, &member.ID)
 
 	// Hapus dari database
