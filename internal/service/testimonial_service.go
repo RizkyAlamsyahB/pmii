@@ -163,6 +163,17 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 	// Simpan foto lama untuk rollback
 	oldPhotoURI := testimonial.PhotoURI
 
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":           testimonial.ID,
+		"name":         testimonial.Name,
+		"organization": testimonial.Organization,
+		"position":     testimonial.Position,
+		"content":      testimonial.Content,
+		"photo_uri":    testimonial.PhotoURI,
+		"is_active":    testimonial.IsActive,
+	}
+
 	// Upload foto baru ke Cloudinary (jika ada)
 	var newPhotoFilename *string
 	if photoFile != nil {
@@ -206,9 +217,14 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 	}
 
 	// Log activity - Update Testimonial
-	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleTestimoni, "Mengupdate testimonial: "+testimonial.Name, nil, map[string]any{
-		"id":   testimonial.ID,
-		"name": testimonial.Name,
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleTestimoni, "Mengupdate testimonial: "+testimonial.Name, oldValues, map[string]any{
+		"id":           testimonial.ID,
+		"name":         testimonial.Name,
+		"organization": testimonial.Organization,
+		"position":     testimonial.Position,
+		"content":      testimonial.Content,
+		"photo_uri":    testimonial.PhotoURI,
+		"is_active":    testimonial.IsActive,
 	}, &testimonial.ID)
 
 	return s.toResponseDTO(testimonial), nil

@@ -141,6 +141,17 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 	// Simpan foto lama untuk rollback
 	oldPhotoURI := member.PhotoURI
 
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
+	}
+
 	// Upload foto baru ke Cloudinary (jika ada)
 	var newPhotoFilename *string
 	if photoFile != nil {
@@ -184,10 +195,14 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 	}
 
 	// Log activity - Update Member
-	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleMembers, "Mengupdate member: "+member.FullName, nil, map[string]any{
-		"id":        member.ID,
-		"full_name": member.FullName,
-		"position":  member.Position,
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleMembers, "Mengupdate member: "+member.FullName, oldValues, map[string]any{
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
 	}, &member.ID)
 
 	return s.toResponseDTO(member), nil

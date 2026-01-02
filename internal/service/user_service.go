@@ -161,6 +161,16 @@ func (s *userService) UpdateUser(ctx context.Context, id int, req *requests.Upda
 
 	oldPhoto := user.PhotoURI
 
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":        user.ID,
+		"full_name": user.FullName,
+		"email":     user.Email,
+		"role":      user.Role,
+		"is_active": user.IsActive,
+		"photo_uri": user.PhotoURI,
+	}
+
 	// Upload photo baru ke cloudinary (jika ada)
 	var newPhotoFileName *string
 	if photoFile != nil {
@@ -235,12 +245,13 @@ func (s *userService) UpdateUser(ctx context.Context, id int, req *requests.Upda
 	}
 
 	// Log activity - Update User (with old values tracking)
-	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleUser, "Mengupdate user: "+user.FullName, nil, map[string]any{
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleUser, "Mengupdate user: "+user.FullName, oldValues, map[string]any{
 		"id":        user.ID,
 		"full_name": user.FullName,
 		"email":     user.Email,
 		"role":      user.Role,
 		"is_active": user.IsActive,
+		"photo_uri": user.PhotoURI,
 	}, &user.ID)
 
 	return user, nil

@@ -148,6 +148,14 @@ func (s *documentService) Update(ctx context.Context, id int, req requests.Updat
 	oldFileURI := document.FileURI
 	oldFileType := document.FileType
 
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":        document.ID,
+		"name":      document.Name,
+		"file_type": string(document.FileType),
+		"file_uri":  document.FileURI,
+	}
+
 	// Update file type if provided
 	if req.FileType != "" {
 		docType := domain.DocumentType(req.FileType)
@@ -189,10 +197,11 @@ func (s *documentService) Update(ctx context.Context, id int, req requests.Updat
 	}
 
 	// Log activity - Update Document
-	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleDokumen, "Mengupdate dokumen: "+document.Name, nil, map[string]any{
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleDokumen, "Mengupdate dokumen: "+document.Name, oldValues, map[string]any{
 		"id":        document.ID,
 		"name":      document.Name,
 		"file_type": string(document.FileType),
+		"file_uri":  document.FileURI,
 	}, &document.ID)
 
 	return s.toResponseDTO(document), nil
