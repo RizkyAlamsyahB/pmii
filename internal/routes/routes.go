@@ -172,13 +172,20 @@ func SetupRoutes(
 			userRoutes.GET("/me", userHandler.GetMyProfile)
 		}
 
+		// Public Posts Routes - Untuk pengunjung melihat postingan
 		posts := v1.Group("/posts")
 		{
 			posts.GET("", postHandler.GetPosts)
-			posts.POST("", postHandler.CreatePost)
 			posts.GET("/:id", postHandler.GetPost)
-			posts.PUT("/:id", postHandler.UpdatePost)
-			posts.DELETE("/:id", postHandler.DeletePost)
+		}
+
+		// Protected Posts Routes - Requires Admin or Author
+		postsProtected := v1.Group("/posts")
+		postsProtected.Use(middleware.AuthMiddleware(), middleware.RequireAnyRole("1", "2"))
+		{
+			postsProtected.POST("", postHandler.CreatePost)
+			postsProtected.PUT("/:id", postHandler.UpdatePost)
+			postsProtected.DELETE("/:id", postHandler.DeletePost)
 		}
 
 		categories := v1.Group("/categories")
