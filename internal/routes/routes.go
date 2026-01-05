@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 
+	"github.com/garuda-labs-1/pmii-be/config"
 	"github.com/garuda-labs-1/pmii-be/internal/handlers"
 	"github.com/garuda-labs-1/pmii-be/internal/middleware"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
@@ -34,7 +35,7 @@ func SetupRoutes(
 	newsRepo := repository.NewNewsRepository()
 	newsSvc := service.NewNewsService(newsRepo)
 	newsHandler := handlers.NewNewsHandler(newsSvc)
-	// --- Inisialisasi Modul Post (Clean Architecture) ---
+	// --- Inisialisasi Modul Post ---
 	postRepo := repository.NewPostRepository()
 	postSvc := service.NewPostService(postRepo)
 	postHandler := handlers.NewPostHandler(postSvc)
@@ -46,6 +47,11 @@ func SetupRoutes(
 	tagRepo := repository.NewTagRepository()
 	tagSvc := service.NewTagService(tagRepo)
 	tagHandler := handlers.NewTagHandler(tagSvc)
+
+	userRepo := repository.NewUserRepository(config.DB) // Pastikan Anda memiliki fungsi New ini
+	inboxRepo := repository.NewInboxRepository()
+	inboxSvc := service.NewInboxService(inboxRepo, userRepo) // Gunakan userRepo langsung
+	inboxHandler := handlers.NewInboxHandler(inboxSvc)
 
 	// Global Middlewares
 	r.Use(middleware.Recovery())
@@ -104,8 +110,8 @@ func SetupRoutes(
 		v1.GET("/home/testimonial", publicHomeHandler.GetTestimonialSection) // GET /v1/home/testimonial
 		v1.GET("/home/faq", publicHomeHandler.GetFaqSection)                 // GET /v1/home/faq
 		v1.GET("/home/cta", publicHomeHandler.GetCtaSection)                 // GET /v1/home/cta
-		v1.GET("/documents", publicDocumentHandler.GetAllPublic)          // GET /v1/documents
-		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic) // GET /v1/documents/:type
+		v1.GET("/documents", publicDocumentHandler.GetAllPublic)             // GET /v1/documents
+		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic)    // GET /v1/documents/:type
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
@@ -186,6 +192,24 @@ func SetupRoutes(
 			tags.POST("", tagHandler.CreateTag)
 			tags.PUT("/:id", tagHandler.UpdateTag)
 			tags.DELETE("/:id", tagHandler.DeleteTag)
+		}
+
+		// Inbox & Chat Routes - Requires Authentication
+		chatRoutes := v1.Group("/chat")
+		chatRoutes.Use(middleware.AuthMiddleware())
+		{
+			// GET /v1/chat/ws - Upgrade ke WebSocket
+			chatRoutes.GET("/ws", inboxHandler.HandleWebSocket)
+
+			// GET /v1/chat/history/:user_id - Ambil riwayat bubble chat
+			chatRoutes.GET("/history/:user_id", inboxHandler.GetInboxList)
+		}
+
+		inboxRoutes := v1.Group("/inbox")
+		inboxRoutes.Use(middleware.AuthMiddleware())
+		{
+			// GET /v1/inbox - Daftar percakapan terakhir (Modal Inbox)
+			inboxRoutes.GET("", inboxHandler.GetInboxList)
 		}
 
 	}
