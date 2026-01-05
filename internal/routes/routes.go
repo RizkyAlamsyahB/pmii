@@ -188,20 +188,34 @@ func SetupRoutes(
 			postsProtected.DELETE("/:id", postHandler.DeletePost)
 		}
 
+		// Public Categories Routes
 		categories := v1.Group("/categories")
 		{
 			categories.GET("", catHandler.GetCategories)
-			categories.POST("", catHandler.CreateCategory)
-			categories.PUT("/:id", catHandler.UpdateCategory)
-			categories.DELETE("/:id", catHandler.DeleteCategory)
 		}
 
+		// Protected Categories Routes - Requires Admin
+		categoriesProtected := v1.Group("/categories")
+		categoriesProtected.Use(middleware.AuthMiddleware(), middleware.AdminOnly())
+		{
+			categoriesProtected.POST("", catHandler.CreateCategory)
+			categoriesProtected.PUT("/:id", catHandler.UpdateCategory)
+			categoriesProtected.DELETE("/:id", catHandler.DeleteCategory)
+		}
+
+		// Public Tags Routes
 		tags := v1.Group("/tags")
 		{
 			tags.GET("", tagHandler.GetTags)
-			tags.POST("", tagHandler.CreateTag)
-			tags.PUT("/:id", tagHandler.UpdateTag)
-			tags.DELETE("/:id", tagHandler.DeleteTag)
+		}
+
+		// Protected Tags Routes - Requires Admin
+		tagsProtected := v1.Group("/tags")
+		tagsProtected.Use(middleware.AuthMiddleware(), middleware.AdminOnly())
+		{
+			tagsProtected.POST("", tagHandler.CreateTag)
+			tagsProtected.PUT("/:id", tagHandler.UpdateTag)
+			tagsProtected.DELETE("/:id", tagHandler.DeleteTag)
 		}
 
 	}
