@@ -93,7 +93,7 @@ func (s *homeService) GetWhySection() (*responses.WhySectionResponse, error) {
 }
 
 func (s *homeService) GetTestimonialSection() ([]responses.TestimonialSectionResponse, error) {
-	testimonials, _, err := s.testimonialRepository.FindAll(1, 7)
+	testimonials, _, err := s.testimonialRepository.FindAll(1, 7, "")
 	if err != nil {
 		logger.Error.Printf("Failed to get testimonial section from repository: %v", err)
 		return nil, err

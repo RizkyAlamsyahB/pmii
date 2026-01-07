@@ -20,7 +20,8 @@ type Post struct {
 	CreatedAt     time.Time      `gorm:"default:now()" json:"created_at"`
 	UpdatedAt     time.Time      `gorm:"default:now()" json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-
+	Views         []PostView     `gorm:"foreignKey:PostID" json:"views,omitempty"`
+	ViewsCount    int            `gorm:"->" json:"views_count"`
 	// Relationships
 	User     User     `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Category Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`

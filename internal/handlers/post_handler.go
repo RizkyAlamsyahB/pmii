@@ -70,9 +70,15 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 // 3. GET DETAIL POST (By ID or Slug)
 func (h *PostHandler) GetPost(c *gin.Context) {
-	id := c.Param("id") // Bisa berupa ID (int) atau Slug (string)
+	identifier := c.Param("slug")
+	if identifier == "" {
+		identifier = c.Param("id")
+	}
 
-	res, err := h.svc.GetPostDetail(id)
+	ipAddress := c.ClientIP()
+	userAgent := c.Request.UserAgent()
+
+	res, err := h.svc.GetPostDetail(identifier, ipAddress, userAgent)
 	if err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Berita tidak ditemukan"))
 		return
