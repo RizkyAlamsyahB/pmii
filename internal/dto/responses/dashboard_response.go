@@ -38,12 +38,9 @@ type TopArticle struct {
 
 // ActivityLogItem item activity log untuk dashboard admin
 type ActivityLogItem struct {
-	ID          int    `json:"id"`
-	UserName    string `json:"user_name"`
-	ActionType  string `json:"action_type"`
-	Module      string `json:"module"`
-	Description string `json:"description"`
-	CreatedAt   string `json:"created_at"`
+	Name  string `json:"name"`  // Nama user
+	Title string `json:"title"` // Deskripsi aktivitas
+	Time  string `json:"time"`  // Format: "10:24 • 03 Des 2025"
 }
 
 // DashboardResponse response lengkap untuk dashboard

@@ -268,25 +268,33 @@ func (s *dashboardService) GetAvailablePeriods(ctx context.Context) (*responses.
 
 // getRecentActivityLogs mendapatkan activity logs terbaru (untuk admin)
 func (s *dashboardService) getRecentActivityLogs() ([]responses.ActivityLogItem, error) {
-	logs, err := s.dashboardRepo.GetRecentActivityLogs(10) // 10 activity terbaru
+	logs, err := s.dashboardRepo.GetRecentActivityLogs(5) // 5 activity terbaru
 	if err != nil {
 		return nil, err
 	}
 
+	// Mapping nama bulan Indonesia
+	monthNamesShort := map[int]string{
+		1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
+		5: "Mei", 6: "Jun", 7: "Jul", 8: "Agu",
+		9: "Sep", 10: "Okt", 11: "Nov", 12: "Des",
+	}
+
 	result := make([]responses.ActivityLogItem, 0, len(logs))
 	for _, log := range logs {
-		description := ""
-		if log.Description != "" {
-			description = log.Description
-		}
+		// Format time: "10:24 • 03 Des 2025"
+		monthShort := monthNamesShort[int(log.CreatedAt.Month())]
+		timeFormatted := fmt.Sprintf("%s • %02d %s %d",
+			log.CreatedAt.Format("15:04"),
+			log.CreatedAt.Day(),
+			monthShort,
+			log.CreatedAt.Year(),
+		)
 
 		result = append(result, responses.ActivityLogItem{
-			ID:          log.ID,
-			UserName:    log.UserName,
-			ActionType:  log.ActionType,
-			Module:      log.Module,
-			Description: description,
-			CreatedAt:   log.CreatedAt.Format("2006-01-02 15:04:05"),
+			Name:  log.UserName,
+			Title: log.Description,
+			Time:  timeFormatted,
 		})
 	}
 
