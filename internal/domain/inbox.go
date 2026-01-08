@@ -16,5 +16,5 @@ type Inbox struct {
 }
 
 func (Inbox) TableName() string {
-	return "inbox"
+	return "inboxes"
 }

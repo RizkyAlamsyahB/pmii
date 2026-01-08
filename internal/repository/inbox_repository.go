@@ -24,7 +24,7 @@ func (r *inboxRepository) GetLatestMessagesPerUser(userID int) ([]domain.Inbox, 
 	var messages []domain.Inbox
 
 	// Query ini mengelompokkan pesan berdasarkan pasangan chat dan mengambil ID terbaru
-	subQuery := config.DB.Table("inbox").
+	subQuery := config.DB.Table("inboxes").
 		Select("MAX(id)").
 		Where("sender_id = ? OR receiver_id = ?", userID, userID).
 		Group("LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id)")
@@ -39,7 +39,8 @@ func (r *inboxRepository) GetLatestMessagesPerUser(userID int) ([]domain.Inbox, 
 // GetMessagesBetweenUsers mengambil riwayat chat lengkap antara dua user
 func (r *inboxRepository) GetMessagesBetweenUsers(u1, u2 int) ([]domain.Inbox, error) {
 	var messages []domain.Inbox
-	err := config.DB.Where("(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)", u1, u2, u2, u1).
+	err := config.DB.Table("inboxes").
+		Where("(sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)", u1, u2, u2, u1).
 		Order("created_at ASC").
 		Find(&messages).Error
 	return messages, err
@@ -54,7 +55,7 @@ func (r *inboxRepository) CountUnread(senderID, receiverID int) int {
 }
 
 func (r *inboxRepository) MarkAsRead(senderID, receiverID int) error {
-	return config.DB.Model(&domain.Inbox{}).
+	return config.DB.Table("inboxes").
 		Where("sender_id = ? AND receiver_id = ? AND is_read = ?", senderID, receiverID, false).
 		Update("is_read", true).Error
 }

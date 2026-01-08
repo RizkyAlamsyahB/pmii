@@ -202,7 +202,7 @@ func SetupRoutes(
 			chatRoutes.GET("/ws", inboxHandler.HandleWebSocket)
 
 			// GET /v1/chat/history/:user_id - Ambil riwayat bubble chat
-			chatRoutes.GET("/history/:user_id", inboxHandler.GetInboxList)
+			chatRoutes.GET("/history/:user_id", inboxHandler.GetChatHistory)
 		}
 
 		inboxRoutes := v1.Group("/inbox")

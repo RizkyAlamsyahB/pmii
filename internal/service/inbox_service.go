@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
 )
@@ -11,6 +12,7 @@ import (
 type InboxService interface {
 	GetList(userID int) ([]responses.InboxListItemResponse, error)
 	GetChatHistory(senderID, receiverID int) ([]responses.ChatHistoryResponse, error)
+	SendMessage(message *domain.Inbox) error
 }
 
 type inboxService struct {
@@ -77,7 +79,7 @@ func (s *inboxService) GetChatHistory(senderID, receiverID int) ([]responses.Cha
 			SenderID: msg.SenderID,
 			Message:  msg.Message,
 			Time:     msg.CreatedAt.Format("15:04"),
-			Date:     formatIndonesianDate(msg.CreatedAt), // Helper untuk "17 Desember 2025"
+			Date:     formatIndonesianDate(msg.CreatedAt),
 		})
 	}
 
@@ -91,4 +93,19 @@ func (s *inboxService) GetChatHistory(senderID, receiverID int) ([]responses.Cha
 func formatIndonesianDate(t time.Time) string {
 	months := []string{"Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"}
 	return fmt.Sprintf("%d %s %d", t.Day(), months[t.Month()-1], t.Year())
+}
+
+func (s *inboxService) SendMessage(message *domain.Inbox) error {
+	// Validasi sederhana: pastikan pesan tidak kosong
+	if message.Message == "" {
+		return fmt.Errorf("pesan tidak boleh kosong")
+	}
+
+	// Panggil repository untuk menyimpan ke tabel 'inbox'
+	err := s.repo.Create(message)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
