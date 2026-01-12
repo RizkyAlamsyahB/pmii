@@ -35,10 +35,11 @@ func GetResourceTypeFromExt(filename string) ResourceType {
 	}
 
 	// Video & Audio extensions (Cloudinary uses "video" for both)
+	// Note: WMA is included as video - will be transformed to MP3 on delivery
 	videoExts := map[string]bool{
 		".mp4": true, ".webm": true, ".mov": true, ".avi": true, ".mkv": true,
 		".mp3": true, ".wav": true, ".ogg": true, ".flac": true, ".aac": true,
-		".wma": true, ".m4a": true, ".opus": true, // Audio formats
+		".m4a": true, ".opus": true, ".wma": true, // Audio formats (WMA will be converted to MP3)
 	}
 
 	if imageExts[ext] {
@@ -80,20 +81,22 @@ func (s *Service) UploadImage(ctx context.Context, folder string, file *multipar
 
 	// Generate unique filename with timestamp
 	ext := filepath.Ext(file.Filename)
-	uniqueFilename := fmt.Sprintf("%d%s", time.Now().Unix(), ext)
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
 
-	// Upload to Cloudinary (always as image for this method)
-	uploadResult, err := s.cld.Upload.Upload(ctx, src, uploader.UploadParams{
-		Folder:       fmt.Sprintf("uploads/%s", folder),
-		PublicID:     uniqueFilename[:len(uniqueFilename)-len(ext)],
-		ResourceType: "image",
+	// Upload to Cloudinary - public ID is just timestamp, folder for organization only
+	_, err = s.cld.Upload.Upload(ctx, src, uploader.UploadParams{
+		AssetFolder:    fmt.Sprintf("uploads/%s", folder),
+		PublicID:       timestamp,
+		UseFilename:    boolPtr(false),
+		UniqueFilename: boolPtr(false),
+		ResourceType:   "image",
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload to Cloudinary: %w", err)
 	}
 
 	// Return filename only (e.g., "1234567890.jpg")
-	filename := fmt.Sprintf("%s%s", uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):], ext)
+	filename := fmt.Sprintf("%s%s", timestamp, ext)
 	return filename, nil
 }
 
@@ -111,38 +114,33 @@ func (s *Service) UploadFile(ctx context.Context, folder string, file *multipart
 
 	// Generate unique filename with timestamp
 	ext := filepath.Ext(file.Filename)
-	timestamp := time.Now().Unix()
+	timestamp := fmt.Sprintf("%d", time.Now().Unix())
 
 	// Determine resource type from file extension
 	resourceType := GetResourceTypeFromExt(file.Filename)
 
 	// For raw files, include extension in public ID
-	// For image/video, Cloudinary handles format automatically
 	var publicID string
 	if resourceType == ResourceTypeRaw {
-		publicID = fmt.Sprintf("%d%s", timestamp, ext) // e.g., "1234567890.zip"
+		publicID = fmt.Sprintf("%s%s", timestamp, ext) // e.g., "1234567890.zip"
 	} else {
-		publicID = fmt.Sprintf("%d", timestamp) // e.g., "1234567890"
+		publicID = timestamp // e.g., "1234567890"
 	}
 
-	// Upload to Cloudinary with correct resource type
-	uploadResult, err := s.cld.Upload.Upload(ctx, src, uploader.UploadParams{
-		Folder:       fmt.Sprintf("uploads/%s", folder),
-		PublicID:     publicID,
-		ResourceType: string(resourceType),
+	// Upload to Cloudinary - public ID is just timestamp, folder for organization only
+	_, err = s.cld.Upload.Upload(ctx, src, uploader.UploadParams{
+		AssetFolder:    fmt.Sprintf("uploads/%s", folder),
+		PublicID:       publicID,
+		UseFilename:    boolPtr(false),
+		UniqueFilename: boolPtr(false),
+		ResourceType:   string(resourceType),
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload to Cloudinary: %w", err)
 	}
 
 	// Return filename with extension (e.g., "1234567890.pdf")
-	// For raw files, public ID already has extension
-	var filename string
-	if resourceType == ResourceTypeRaw {
-		filename = uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):]
-	} else {
-		filename = fmt.Sprintf("%s%s", uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):], ext)
-	}
+	filename := fmt.Sprintf("%s%s", timestamp, ext)
 	return filename, nil
 }
 
@@ -161,7 +159,7 @@ func (s *Service) UploadFromPath(ctx context.Context, folder string, filePath st
 	// Get filename and extension
 	originalFilename := filepath.Base(filePath)
 	ext := filepath.Ext(originalFilename)
-	timestamp := time.Now().UnixNano() / 1000000 // milliseconds for uniqueness
+	timestamp := fmt.Sprintf("%d", time.Now().UnixNano()/1000000) // milliseconds for uniqueness
 
 	// Determine resource type from file extension
 	resourceType := GetResourceTypeFromExt(originalFilename)
@@ -169,28 +167,25 @@ func (s *Service) UploadFromPath(ctx context.Context, folder string, filePath st
 	// For raw files, include extension in public ID
 	var publicID string
 	if resourceType == ResourceTypeRaw {
-		publicID = fmt.Sprintf("%d%s", timestamp, ext)
+		publicID = fmt.Sprintf("%s%s", timestamp, ext)
 	} else {
-		publicID = fmt.Sprintf("%d", timestamp)
+		publicID = timestamp
 	}
 
-	// Upload to Cloudinary with correct resource type
-	uploadResult, err := s.cld.Upload.Upload(ctx, file, uploader.UploadParams{
-		Folder:       fmt.Sprintf("uploads/%s", folder),
-		PublicID:     publicID,
-		ResourceType: string(resourceType),
+	// Upload to Cloudinary - public ID is just timestamp, folder for organization only
+	_, err = s.cld.Upload.Upload(ctx, file, uploader.UploadParams{
+		AssetFolder:    fmt.Sprintf("uploads/%s", folder),
+		PublicID:       publicID,
+		UseFilename:    boolPtr(false),
+		UniqueFilename: boolPtr(false),
+		ResourceType:   string(resourceType),
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload to Cloudinary: %w", err)
 	}
 
 	// Return filename with extension
-	var filename string
-	if resourceType == ResourceTypeRaw {
-		filename = uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):]
-	} else {
-		filename = fmt.Sprintf("%s%s", uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):], ext)
-	}
+	filename := fmt.Sprintf("%s%s", timestamp, ext)
 	return filename, nil
 }
 
@@ -199,7 +194,7 @@ func (s *Service) UploadFromPath(ctx context.Context, folder string, filePath st
 // If file with same public_id exists, it will be overwritten (not duplicated)
 // folder: target folder in Cloudinary (e.g., "seeds/members")
 // filePath: local file path to upload
-// publicID: fixed identifier for the file (e.g., original filename without ext)
+// customPublicID: fixed identifier for the file (e.g., original filename without ext)
 // Returns: filename with extension, error
 func (s *Service) UploadFromPathWithOverwrite(ctx context.Context, folder string, filePath string, customPublicID string) (string, error) {
 	// Open file
@@ -224,24 +219,21 @@ func (s *Service) UploadFromPathWithOverwrite(ctx context.Context, folder string
 		publicID = customPublicID
 	}
 
-	// Upload to Cloudinary with overwrite enabled
-	uploadResult, err := s.cld.Upload.Upload(ctx, file, uploader.UploadParams{
-		Folder:       fmt.Sprintf("uploads/%s", folder),
-		PublicID:     publicID,
-		ResourceType: string(resourceType),
-		Overwrite:    boolPtr(true), // Overwrite existing file with same public_id
+	// Upload to Cloudinary - public ID is just customPublicID, folder for organization only
+	_, err = s.cld.Upload.Upload(ctx, file, uploader.UploadParams{
+		AssetFolder:    fmt.Sprintf("uploads/%s", folder),
+		PublicID:       publicID,
+		UseFilename:    boolPtr(false),
+		UniqueFilename: boolPtr(false),
+		ResourceType:   string(resourceType),
+		Overwrite:      boolPtr(true), // Overwrite existing file with same public_id
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload to Cloudinary: %w", err)
 	}
 
 	// Return filename with extension
-	var filename string
-	if resourceType == ResourceTypeRaw {
-		filename = uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):]
-	} else {
-		filename = fmt.Sprintf("%s%s", uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):], ext)
-	}
+	filename := fmt.Sprintf("%s%s", customPublicID, ext)
 	return filename, nil
 }
 
@@ -251,15 +243,12 @@ func boolPtr(b bool) *bool {
 }
 
 // DeleteImage deletes image from Cloudinary
-// folder: target folder in Cloudinary (e.g., "testimonials")
+// folder: not used anymore, kept for backward compatibility
 // filename: filename to delete (e.g., "abc123.jpg")
 func (s *Service) DeleteImage(ctx context.Context, folder string, filename string) error {
-	// Remove extension from filename
+	// Remove extension from filename to get public ID
 	ext := filepath.Ext(filename)
-	filenameWithoutExt := filename[:len(filename)-len(ext)]
-
-	// Construct public ID
-	publicID := fmt.Sprintf("uploads/%s/%s", folder, filenameWithoutExt)
+	publicID := filename[:len(filename)-len(ext)]
 
 	// Delete from Cloudinary (image resource type)
 	_, err := s.cld.Upload.Destroy(ctx, uploader.DestroyParams{
@@ -274,7 +263,7 @@ func (s *Service) DeleteImage(ctx context.Context, folder string, filename strin
 }
 
 // DeleteFile deletes file from Cloudinary with correct resource type
-// folder: target folder in Cloudinary (e.g., "documents/produk_hukum")
+// folder: not used anymore, kept for backward compatibility
 // filename: filename to delete (e.g., "abc123.pdf")
 func (s *Service) DeleteFile(ctx context.Context, folder string, filename string) error {
 	// Determine resource type from extension
@@ -284,12 +273,11 @@ func (s *Service) DeleteFile(ctx context.Context, folder string, filename string
 	var publicID string
 	if resourceType == ResourceTypeRaw {
 		// For raw files, public ID includes extension
-		publicID = fmt.Sprintf("uploads/%s/%s", folder, filename)
+		publicID = filename
 	} else {
 		// For image/video, public ID excludes extension
 		ext := filepath.Ext(filename)
-		filenameWithoutExt := filename[:len(filename)-len(ext)]
-		publicID = fmt.Sprintf("uploads/%s/%s", folder, filenameWithoutExt)
+		publicID = filename[:len(filename)-len(ext)]
 	}
 
 	// Delete from Cloudinary with correct resource type
@@ -305,7 +293,7 @@ func (s *Service) DeleteFile(ctx context.Context, folder string, filename string
 }
 
 // GetImageURL returns full Cloudinary URL for a given filename
-// folder: target folder (e.g., "testimonials")
+// folder: not used anymore, kept for backward compatibility
 // filename: filename (e.g., "abc123.jpg")
 func (s *Service) GetImageURL(folder string, filename string) string {
 	if filename == "" {
@@ -313,9 +301,8 @@ func (s *Service) GetImageURL(folder string, filename string) string {
 	}
 
 	ext := filepath.Ext(filename)
-	filenameWithoutExt := filename[:len(filename)-len(ext)]
+	publicID := filename[:len(filename)-len(ext)]
 
-	publicID := fmt.Sprintf("uploads/%s/%s", folder, filenameWithoutExt)
 	asset, err := s.cld.Image(publicID)
 	if err != nil {
 		return ""
@@ -325,7 +312,7 @@ func (s *Service) GetImageURL(folder string, filename string) string {
 }
 
 // GetFileURL returns full Cloudinary URL for any file type with correct resource type
-// folder: target folder (e.g., "documents/produk_hukum")
+// folder: not used anymore, kept for backward compatibility
 // filename: filename with extension (e.g., "abc123.pdf", "abc123.mp3")
 func (s *Service) GetFileURL(folder string, filename string) string {
 	if filename == "" {
@@ -345,34 +332,30 @@ func (s *Service) GetFileURL(folder string, filename string) string {
 	case ResourceTypeImage:
 		// For PDF, construct URL manually to include .pdf extension
 		if ext == ".pdf" {
-			publicID := fmt.Sprintf("uploads/%s/%s", folder, filenameWithoutExt)
-			url = fmt.Sprintf("https://res.cloudinary.com/%s/image/upload/v1/%s%s", cloudName, publicID, ext)
+			url = fmt.Sprintf("https://res.cloudinary.com/%s/image/upload/v1/%s%s", cloudName, filenameWithoutExt, ext)
 		} else {
-			publicID := fmt.Sprintf("uploads/%s/%s", folder, filenameWithoutExt)
-			asset, err := s.cld.Image(publicID)
+			asset, err := s.cld.Image(filenameWithoutExt)
 			if err != nil {
 				return ""
 			}
 			url, _ = asset.String()
 		}
 	case ResourceTypeVideo:
-		publicID := fmt.Sprintf("uploads/%s/%s", folder, filenameWithoutExt)
-		asset, err := s.cld.Video(publicID)
+		asset, err := s.cld.Video(filenameWithoutExt)
 		if err != nil {
 			return ""
 		}
 		url, _ = asset.String()
 	case ResourceTypeRaw:
 		// For raw files, public ID includes extension (e.g., "1234567890.zip")
-		publicID := fmt.Sprintf("uploads/%s/%s", folder, filename)
-		url = fmt.Sprintf("https://res.cloudinary.com/%s/raw/upload/v1/%s", cloudName, publicID)
+		url = fmt.Sprintf("https://res.cloudinary.com/%s/raw/upload/v1/%s", cloudName, filename)
 	}
 
 	return url
 }
 
 // GetDownloadURL returns Cloudinary URL with fl_attachment for forced download
-// folder: target folder (e.g., "documents/produk_hukum")
+// folder: not used anymore, kept for backward compatibility
 // filename: filename with extension (e.g., "abc123.pdf")
 func (s *Service) GetDownloadURL(folder string, filename string) string {
 	if filename == "" {
@@ -384,15 +367,21 @@ func (s *Service) GetDownloadURL(folder string, filename string) string {
 	resourceType := GetResourceTypeFromExt(filename)
 	cloudName := s.cld.Config.Cloud.CloudName
 
+	// Special handling for WMA files - always use video endpoint and convert to mp3
+	if ext == ".wma" {
+		// Use f_mp3 to convert WMA to MP3 on-the-fly, fl_attachment for download
+		return fmt.Sprintf("https://res.cloudinary.com/%s/video/upload/f_mp3,fl_attachment/v1/%s",
+			cloudName, filenameWithoutExt)
+	}
+
 	// Build download URL with fl_attachment transformation
 	if resourceType == ResourceTypeRaw {
 		// For raw files, public ID includes extension
-		publicID := fmt.Sprintf("uploads/%s/%s", folder, filename)
-		return fmt.Sprintf("https://res.cloudinary.com/%s/raw/upload/fl_attachment/v1/%s", cloudName, publicID)
+		// Note: fl_attachment is NOT supported for raw files, use direct URL
+		return fmt.Sprintf("https://res.cloudinary.com/%s/raw/upload/v1/%s", cloudName, filename)
 	}
 
 	// For image/video, public ID excludes extension
-	publicID := fmt.Sprintf("uploads/%s/%s", folder, filenameWithoutExt)
 	return fmt.Sprintf("https://res.cloudinary.com/%s/%s/upload/fl_attachment/v1/%s%s",
-		cloudName, resourceType, publicID, ext)
+		cloudName, resourceType, filenameWithoutExt, ext)
 }
