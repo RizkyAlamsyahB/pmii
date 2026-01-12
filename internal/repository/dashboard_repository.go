@@ -82,13 +82,12 @@ func NewDashboardRepository(db *gorm.DB) DashboardRepository {
 	return &dashboardRepository{db: db}
 }
 
-// GetUniqueVisitors menghitung unique visitors berdasarkan IP
+// GetUniqueVisitors menghitung unique visitors dari tabel visitors
+// Sudah unique per hari (1 IP = 1 record per hari)
 func (r *dashboardRepository) GetUniqueVisitors(startDate, endDate time.Time) (int64, error) {
 	var count int64
-	err := r.db.Table("post_views").
-		Where("viewed_at >= ? AND viewed_at < ?", startDate, endDate).
-		Where("ip_address IS NOT NULL AND ip_address != ''").
-		Distinct("ip_address").
+	err := r.db.Table("visitors").
+		Where("visited_at >= ? AND visited_at < ?", startDate, endDate).
 		Count(&count).Error
 
 	return count, err
@@ -161,15 +160,14 @@ func (r *dashboardRepository) GetCategoryDistribution(startDate, endDate time.Ti
 	return results, err
 }
 
-// GetDailyVisitors mendapatkan trend visitor harian
+// GetDailyVisitors mendapatkan trend visitor harian dari tabel visitors
 func (r *dashboardRepository) GetDailyVisitors(startDate, endDate time.Time) ([]DailyVisitors, error) {
 	var results []DailyVisitors
 
-	err := r.db.Table("post_views").
-		Select("DATE(viewed_at) as date, COUNT(DISTINCT ip_address) as visitors").
-		Where("viewed_at >= ? AND viewed_at < ?", startDate, endDate).
-		Where("ip_address IS NOT NULL AND ip_address != ''").
-		Group("DATE(viewed_at)").
+	err := r.db.Table("visitors").
+		Select("DATE(visited_at) as date, COUNT(*) as visitors").
+		Where("visited_at >= ? AND visited_at < ?", startDate, endDate).
+		Group("DATE(visited_at)").
 		Order("date ASC").
 		Scan(&results).Error
 

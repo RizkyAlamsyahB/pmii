@@ -39,7 +39,6 @@ services:
     networks:
       - pmii-network
 
-
   # pgAdmin auto connect to PostgreSQL
   pgadmin:
     image: dpage/pgadmin4:latest

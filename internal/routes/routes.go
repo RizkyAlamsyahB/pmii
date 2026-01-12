@@ -27,6 +27,7 @@ func SetupRoutes(
 	documentHandler *handlers.DocumentHandler,
 	publicDocumentHandler *handlers.PublicDocumentHandler,
 	dashboardHandler *handlers.DashboardHandler,
+	visitorRepo repository.VisitorRepository,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -51,6 +52,7 @@ func SetupRoutes(
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
+	r.Use(middleware.VisitorTracker(visitorRepo)) // Track unique visitors per day
 
 	// Rate Limiter untuk login endpoint (60 request per menit = 1 req/s, burst 60)
 	loginLimiter := middleware.NewRateLimiter(rate.Limit(1), 60)
