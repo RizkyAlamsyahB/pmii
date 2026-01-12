@@ -20,6 +20,9 @@ type MemberSeedData struct {
 func (s *Seeder) SeedMembers() error {
 	logSeederStart("Members")
 
+	// Clear existing members and reset sequence for clean re-seeding
+	s.db.Exec("TRUNCATE TABLE members RESTART IDENTITY CASCADE")
+
 	members := getMembersData()
 	successCount := 0
 

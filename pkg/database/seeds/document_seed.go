@@ -17,6 +17,9 @@ type DocumentSeedData struct {
 func (s *Seeder) SeedDocuments() error {
 	logSeederStart("Documents")
 
+	// Clear existing documents and reset sequence for clean re-seeding
+	s.db.Exec("TRUNCATE TABLE documents RESTART IDENTITY CASCADE")
+
 	documents := getDocumentsData()
 	successCount := 0
 

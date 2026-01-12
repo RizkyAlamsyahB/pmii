@@ -57,9 +57,6 @@ func (s *Seeder) SeedAll() error {
 		}
 	}
 
-	// Reset all sequences after seeding to prevent duplicate key errors
-	s.resetSequences()
-
 	if len(failedSeeders) > 0 {
 		log.Printf("⚠️ Content seeding completed with %d failures: %v", len(failedSeeders), failedSeeders)
 		return fmt.Errorf("failed to seed: %v", failedSeeders)
@@ -92,33 +89,6 @@ func (s *Seeder) SeedSelected(names ...string) error {
 		}
 	}
 
-	// Reset all sequences after seeding to prevent duplicate key errors
-	s.resetSequences()
-
 	log.Println("✅ Selected seeding completed!")
 	return nil
-}
-
-// resetSequences resets all PostgreSQL sequences to max(id)+1
-// This prevents duplicate key errors after seeding with manual IDs
-func (s *Seeder) resetSequences() {
-	log.Println("🔄 Resetting database sequences...")
-
-	tables := []string{
-		"members",
-		"testimonials",
-		"documents",
-	}
-
-	for _, table := range tables {
-		query := fmt.Sprintf(
-			"SELECT setval('%s_id_seq', COALESCE((SELECT MAX(id) FROM %s), 0) + 1, false)",
-			table, table,
-		)
-		if err := s.db.Exec(query).Error; err != nil {
-			log.Printf("⚠️ Warning: Failed to reset sequence for %s: %v", table, err)
-		}
-	}
-
-	log.Println("✅ Sequences reset completed")
 }
