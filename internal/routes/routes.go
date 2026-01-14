@@ -55,6 +55,11 @@ func SetupRoutes(
 	tagSvc := service.NewTagService(tagRepo, activityLogRepo)
 	tagHandler := handlers.NewTagHandler(tagSvc)
 
+	userRepo := repository.NewUserRepository(config.DB) // Pastikan Anda memiliki fungsi New ini
+	inboxRepo := repository.NewInboxRepository()
+	inboxSvc := service.NewInboxService(inboxRepo, userRepo) // Gunakan userRepo langsung
+	inboxHandler := handlers.NewInboxHandler(inboxSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
@@ -224,6 +229,24 @@ func SetupRoutes(
 			tagsProtected.POST("", tagHandler.CreateTag)
 			tagsProtected.PUT("/:id", tagHandler.UpdateTag)
 			tagsProtected.DELETE("/:id", tagHandler.DeleteTag)
+		}
+
+		// Inbox & Chat Routes - Requires Authentication
+		chatRoutes := v1.Group("/chat")
+		chatRoutes.Use(middleware.AuthMiddleware())
+		{
+			// GET /v1/chat/ws - Upgrade ke WebSocket
+			chatRoutes.GET("/ws", inboxHandler.HandleWebSocket)
+
+			// GET /v1/chat/history/:user_id - Ambil riwayat bubble chat
+			chatRoutes.GET("/history/:user_id", inboxHandler.GetChatHistory)
+		}
+
+		inboxRoutes := v1.Group("/inbox")
+		inboxRoutes.Use(middleware.AuthMiddleware())
+		{
+			// GET /v1/inbox - Daftar percakapan terakhir (Modal Inbox)
+			inboxRoutes.GET("", inboxHandler.GetInboxList)
 		}
 
 	}
