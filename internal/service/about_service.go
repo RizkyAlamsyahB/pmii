@@ -103,12 +103,11 @@ func (s *aboutService) toResponseDTO(a *domain.About) *responses.AboutResponse {
 	}
 
 	return &responses.AboutResponse{
-		ID:        a.ID,
-		History:   a.History,
-		Vision:    a.Vision,
-		Mission:   a.Mission,
-		ImageUrl:  imageURL,
-		VideoURL:  a.VideoURL,
-		UpdatedAt: a.UpdatedAt,
+		ID:       a.ID,
+		History:  a.History,
+		Vision:   a.Vision,
+		Mission:  a.Mission,
+		ImageUrl: imageURL,
+		VideoURL: a.VideoURL,
 	}
 }
