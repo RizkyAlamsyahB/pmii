@@ -96,6 +96,7 @@ func main() {
 	publicHomeService := service.NewPublicHomeService(homeRepo, testimonialRepo, cloudinaryService)
 	documentService := service.NewDocumentService(documentRepo, cloudinaryService)
 	publicDocumentService := service.NewPublicDocumentService(documentRepo, cloudinaryService)
+	publicSiteSettingService := service.NewPublicSiteSettingService(siteSettingRepo, cloudinaryService)
 
 	// 8. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)
@@ -110,6 +111,7 @@ func main() {
 	publicHomeHandler := handlers.NewPublicHomeHandler(publicHomeService)
 	documentHandler := handlers.NewDocumentHandler(documentService)
 	publicDocumentHandler := handlers.NewPublicDocumentHandler(publicDocumentService)
+	publicSiteSettingHandler := handlers.NewPublicSiteSettingHandler(publicSiteSettingService)
 
 	// 9. Setup Gin Router
 	if cfg.Server.Environment == "production" {
@@ -121,7 +123,7 @@ func main() {
 	r.MaxMultipartMemory = 20 << 20 // 20 MB
 
 	// 10. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, publicSiteSettingHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port
