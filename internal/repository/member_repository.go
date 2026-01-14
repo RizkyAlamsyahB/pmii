@@ -101,8 +101,8 @@ func (r *memberRepository) FindActiveWithPagination(page, limit int, search stri
 	// Calculate offset
 	offset := (page - 1) * limit
 
-	// Get paginated data
-	err := query.Order("created_at ASC").Limit(limit).Offset(offset).Find(&members).Error
+	// Get paginated data - ORDER BY id ASC as secondary sort for consistent pagination
+	err := query.Order("created_at ASC, id ASC").Limit(limit).Offset(offset).Find(&members).Error
 	return members, total, err
 }
 
@@ -127,7 +127,7 @@ func (r *memberRepository) FindActiveByDepartment(department string, page, limit
 	// Calculate offset
 	offset := (page - 1) * limit
 
-	// Get paginated data
-	err := query.Order("created_at ASC").Limit(limit).Offset(offset).Find(&members).Error
+	// Get paginated data - ORDER BY id ASC as secondary sort for consistent pagination
+	err := query.Order("created_at ASC, id ASC").Limit(limit).Offset(offset).Find(&members).Error
 	return members, total, err
 }
