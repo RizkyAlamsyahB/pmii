@@ -183,6 +183,5 @@ func (s *siteSettingService) toResponseDTO(setting *domain.SiteSetting) *respons
 		InstagramURL:    setting.InstagramURL,
 		YoutubeURL:      setting.YoutubeURL,
 		GithubURL:       setting.GithubURL,
-		UpdatedAt:       setting.UpdatedAt,
 	}
 }

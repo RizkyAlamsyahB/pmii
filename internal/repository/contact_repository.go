@@ -20,10 +20,10 @@ func NewContactRepository(db *gorm.DB) ContactRepository {
 	return &contactRepository{db: db}
 }
 
-// Get mengambil contact info (singleton - always ID 1)
+// Get mengambil contact info (singleton - mengambil record pertama yang ada)
 func (r *contactRepository) Get() (*domain.Contact, error) {
 	var contact domain.Contact
-	err := r.db.First(&contact, 1).Error
+	err := r.db.First(&contact).Error
 	if err != nil {
 		return nil, err
 	}

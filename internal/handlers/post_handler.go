@@ -58,8 +58,9 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	file, _ := c.FormFile("image")
 	req.Image = file
 
-	// Eksekusi pembuatan post melalui service
-	res, err := h.svc.CreatePost(req)
+	// Eksekusi pembuatan post melalui service dengan context untuk logging
+	ctx := GetContextWithRequestInfo(c)
+	res, err := h.svc.CreatePost(ctx, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal membuat berita"))
 		return
@@ -70,9 +71,15 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 // 3. GET DETAIL POST (By ID or Slug)
 func (h *PostHandler) GetPost(c *gin.Context) {
-	id := c.Param("id") // Bisa berupa ID (int) atau Slug (string)
+	identifier := c.Param("slug")
+	if identifier == "" {
+		identifier = c.Param("id")
+	}
 
-	res, err := h.svc.GetPostDetail(id)
+	ipAddress := c.ClientIP()
+	userAgent := c.Request.UserAgent()
+
+	res, err := h.svc.GetPostDetail(identifier, ipAddress, userAgent)
 	if err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Berita tidak ditemukan"))
 		return
@@ -95,7 +102,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 	file, _ := c.FormFile("image")
 	req.Image = file
 
-	res, err := h.svc.UpdatePost(id, req)
+	res, err := h.svc.UpdatePost(GetContextWithRequestInfo(c), id, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal memperbarui berita"))
 		return
@@ -108,7 +115,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 func (h *PostHandler) DeletePost(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.svc.DeletePost(id); err != nil {
+	if err := h.svc.DeletePost(GetContextWithRequestInfo(c), id); err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Berita tidak ditemukan atau gagal dihapus"))
 		return
 	}

@@ -2,12 +2,14 @@ package main
 
 import (
 	"github.com/garuda-labs-1/pmii-be/config"
+	// "github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/handlers"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
 	"github.com/garuda-labs-1/pmii-be/internal/routes"
 	"github.com/garuda-labs-1/pmii-be/internal/service"
 	"github.com/garuda-labs-1/pmii-be/pkg/cloudinary"
 	"github.com/garuda-labs-1/pmii-be/pkg/database"
+	"github.com/garuda-labs-1/pmii-be/pkg/database/seeds"
 	"github.com/garuda-labs-1/pmii-be/pkg/logger"
 	"github.com/garuda-labs-1/pmii-be/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -25,11 +27,11 @@ func main() {
 	}
 
 	config.InitDB(cfg)
-	// Ini akan membuat tabel 'posts' di database berdasarkan struct Post di handler
 	// config.DB.AutoMigrate(
 	// 	&domain.Category{},
 	// 	&domain.Tag{},
 	// 	&domain.Post{},
+	// 	&domain.PostView{},
 	// )
 
 	logger.Info.Printf("Environment: %s", cfg.Server.Environment)
@@ -74,6 +76,14 @@ func main() {
 	}
 	logger.Info.Println("✅ Cloudinary service initialized")
 
+	// 5a. Seed Content Data (Development only)
+	if cfg.Server.Environment == "development" {
+		seeder := seeds.NewSeeder(db, cloudinaryService, "./seeds")
+		if err := seeder.SeedAll(); err != nil {
+			logger.Error.Printf("⚠️ Content seeding completed with errors: %v", err)
+		}
+	}
+
 	// 6. Initialize Repositories (Data Layer)
 	userRepo := repository.NewUserRepository(db)
 	testimonialRepo := repository.NewTestimonialRepository(db)
@@ -83,19 +93,23 @@ func main() {
 	contactRepo := repository.NewContactRepository(db)
 	homeRepo := repository.NewHomeRepository(db)
 	documentRepo := repository.NewDocumentRepository(db)
+	dashboardRepo := repository.NewDashboardRepository(db)
+	activityLogRepo := repository.NewActivityLogRepository()
 
 	// 7. Initialize Services (Business Logic Layer)
-	authService := service.NewAuthService(userRepo)
-	userService := service.NewUserService(userRepo, cloudinaryService)
-	testimonialService := service.NewTestimonialService(testimonialRepo, cloudinaryService)
-	memberService := service.NewMemberService(memberRepo, cloudinaryService)
+	authService := service.NewAuthService(userRepo, activityLogRepo)
+	userService := service.NewUserService(userRepo, cloudinaryService, activityLogRepo)
+	testimonialService := service.NewTestimonialService(testimonialRepo, cloudinaryService, activityLogRepo)
+	memberService := service.NewMemberService(memberRepo, cloudinaryService, activityLogRepo)
 	aboutService := service.NewAboutService(aboutRepo, cloudinaryService)
 	siteSettingService := service.NewSiteSettingService(siteSettingRepo, cloudinaryService)
 	contactService := service.NewContactService(contactRepo)
 	publicAboutService := service.NewPublicAboutService(aboutRepo, memberRepo, contactRepo, cloudinaryService)
 	publicHomeService := service.NewPublicHomeService(homeRepo, testimonialRepo, cloudinaryService)
-	documentService := service.NewDocumentService(documentRepo, cloudinaryService)
+	documentService := service.NewDocumentService(documentRepo, cloudinaryService, activityLogRepo)
 	publicDocumentService := service.NewPublicDocumentService(documentRepo, cloudinaryService)
+	dashboardService := service.NewDashboardService(dashboardRepo)
+	publicSiteSettingService := service.NewPublicSiteSettingService(siteSettingRepo, cloudinaryService)
 
 	// 8. Initialize Handlers (Transport Layer)
 	authHandler := handlers.NewAuthHandler(authService)
@@ -110,6 +124,8 @@ func main() {
 	publicHomeHandler := handlers.NewPublicHomeHandler(publicHomeService)
 	documentHandler := handlers.NewDocumentHandler(documentService)
 	publicDocumentHandler := handlers.NewPublicDocumentHandler(publicDocumentService)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
+	publicSiteSettingHandler := handlers.NewPublicSiteSettingHandler(publicSiteSettingService)
 
 	// 9. Setup Gin Router
 	if cfg.Server.Environment == "production" {
@@ -121,7 +137,8 @@ func main() {
 	r.MaxMultipartMemory = 20 << 20 // 20 MB
 
 	// 10. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, dashboardHandler, publicSiteSettingHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port

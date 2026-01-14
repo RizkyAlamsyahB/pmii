@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mime/multipart"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -143,6 +144,110 @@ func (s *Service) UploadFile(ctx context.Context, folder string, file *multipart
 		filename = fmt.Sprintf("%s%s", uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):], ext)
 	}
 	return filename, nil
+}
+
+// UploadFromPath uploads file from local path to Cloudinary
+// folder: target folder in Cloudinary (e.g., "members", "documents/produk_hukum")
+// filePath: local file path to upload
+// Returns: filename with extension (e.g., "1234567890.jpg"), error
+func (s *Service) UploadFromPath(ctx context.Context, folder string, filePath string) (string, error) {
+	// Open file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Get filename and extension
+	originalFilename := filepath.Base(filePath)
+	ext := filepath.Ext(originalFilename)
+	timestamp := time.Now().UnixNano() / 1000000 // milliseconds for uniqueness
+
+	// Determine resource type from file extension
+	resourceType := GetResourceTypeFromExt(originalFilename)
+
+	// For raw files, include extension in public ID
+	var publicID string
+	if resourceType == ResourceTypeRaw {
+		publicID = fmt.Sprintf("%d%s", timestamp, ext)
+	} else {
+		publicID = fmt.Sprintf("%d", timestamp)
+	}
+
+	// Upload to Cloudinary with correct resource type
+	uploadResult, err := s.cld.Upload.Upload(ctx, file, uploader.UploadParams{
+		Folder:       fmt.Sprintf("uploads/%s", folder),
+		PublicID:     publicID,
+		ResourceType: string(resourceType),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload to Cloudinary: %w", err)
+	}
+
+	// Return filename with extension
+	var filename string
+	if resourceType == ResourceTypeRaw {
+		filename = uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):]
+	} else {
+		filename = fmt.Sprintf("%s%s", uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):], ext)
+	}
+	return filename, nil
+}
+
+// UploadFromPathWithOverwrite uploads file from local path to Cloudinary with fixed public_id
+// This is used by seeders to prevent duplicate uploads when database is reset
+// If file with same public_id exists, it will be overwritten (not duplicated)
+// folder: target folder in Cloudinary (e.g., "seeds/members")
+// filePath: local file path to upload
+// publicID: fixed identifier for the file (e.g., original filename without ext)
+// Returns: filename with extension, error
+func (s *Service) UploadFromPathWithOverwrite(ctx context.Context, folder string, filePath string, customPublicID string) (string, error) {
+	// Open file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	// Get filename and extension
+	originalFilename := filepath.Base(filePath)
+	ext := filepath.Ext(originalFilename)
+
+	// Determine resource type from file extension
+	resourceType := GetResourceTypeFromExt(originalFilename)
+
+	// For raw files, include extension in public ID
+	var publicID string
+	if resourceType == ResourceTypeRaw {
+		publicID = customPublicID + ext
+	} else {
+		publicID = customPublicID
+	}
+
+	// Upload to Cloudinary with overwrite enabled
+	uploadResult, err := s.cld.Upload.Upload(ctx, file, uploader.UploadParams{
+		Folder:       fmt.Sprintf("uploads/%s", folder),
+		PublicID:     publicID,
+		ResourceType: string(resourceType),
+		Overwrite:    boolPtr(true), // Overwrite existing file with same public_id
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload to Cloudinary: %w", err)
+	}
+
+	// Return filename with extension
+	var filename string
+	if resourceType == ResourceTypeRaw {
+		filename = uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):]
+	} else {
+		filename = fmt.Sprintf("%s%s", uploadResult.PublicID[len(fmt.Sprintf("uploads/%s/", folder)):], ext)
+	}
+	return filename, nil
+}
+
+// boolPtr returns a pointer to a bool value
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 // DeleteImage deletes image from Cloudinary

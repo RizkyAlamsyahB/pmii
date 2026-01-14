@@ -75,6 +75,5 @@ func (s *contactService) toResponseDTO(contact *domain.Contact) *responses.Conta
 		Email:         contact.Email,
 		Phone:         contact.Phone,
 		GoogleMapsURL: contact.GoogleMapsURL,
-		UpdatedAt:     contact.UpdatedAt,
 	}
 }

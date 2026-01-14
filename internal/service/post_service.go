@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"math"
 	"strings"
 	"time"
@@ -15,17 +16,21 @@ import (
 type PostService interface {
 	GetAllPosts(page, limit int, search string) ([]responses.PostResponse, int, int64, error)
 	CreatePost(req requests.PostCreateRequest) (responses.PostResponse, error)
-	GetPostDetail(id string) (responses.PostResponse, error)
 	UpdatePost(id string, req requests.PostUpdateRequest) (responses.PostResponse, error)
 	DeletePost(id string) error
+	GetPostDetail(id string, ip, ua string) (responses.PostResponse, error)
 }
 
 type postService struct {
-	repo repository.PostRepository
+	repo            repository.PostRepository
+	activityLogRepo repository.ActivityLogRepository
 }
 
-func NewPostService(repo repository.PostRepository) PostService {
-	return &postService{repo: repo}
+func NewPostService(repo repository.PostRepository, activityLogRepo repository.ActivityLogRepository) PostService {
+	return &postService{
+		repo:            repo,
+		activityLogRepo: activityLogRepo,
+	}
 }
 
 // 1. GET ALL POSTS WITH PAGINATION
@@ -45,7 +50,7 @@ func (s *postService) GetAllPosts(page, limit int, search string) ([]responses.P
 }
 
 // 2. CREATE POST
-func (s *postService) CreatePost(req requests.PostCreateRequest) (responses.PostResponse, error) {
+func (s *postService) CreatePost(ctx context.Context, req requests.PostCreateRequest) (responses.PostResponse, error) {
 	var featuredImage *string
 
 	// Logika Upload Gambar ke Cloudinary
@@ -66,13 +71,19 @@ func (s *postService) CreatePost(req requests.PostCreateRequest) (responses.Post
 		excerptText = excerptText[:150] + "..."
 	}
 
+	// Get user ID from context
+	userID, _ := utils.GetUserID(ctx)
+	if userID == 0 {
+		userID = 1 // Default Admin if not in context
+	}
+
 	publishedTime := time.Now()
 	post := domain.Post{
 		Title:         req.Title,
 		Content:       req.Content,
 		Slug:          req.GetSlug(),
 		CategoryID:    req.CategoryID,
-		UserID:        1, // Default Admin
+		UserID:        userID,
 		Excerpt:       &excerptText,
 		FeaturedImage: featuredImage,
 		PublishedAt:   &publishedTime,
@@ -85,24 +96,64 @@ func (s *postService) CreatePost(req requests.PostCreateRequest) (responses.Post
 
 	// Reload data untuk mendapatkan relasi Category & Tags lengkap
 	updatedPost, _ := s.repo.FindByID(post.ID)
+
+	// Log activity - Create Post
+	s.logActivity(ctx, domain.ActionCreate, domain.ModulePost, "Membuat post baru: "+post.Title, nil, map[string]any{
+		"id":          post.ID,
+		"title":       post.Title,
+		"slug":        post.Slug,
+		"category_id": post.CategoryID,
+	}, &post.ID)
+
 	return responses.FromDomainToPostResponse(updatedPost), nil
 }
 
 // 3. GET DETAIL POST
-func (s *postService) GetPostDetail(id string) (responses.PostResponse, error) {
+func (s *postService) GetPostDetail(id string, ip, ua string) (responses.PostResponse, error) {
+	// 1. Ambil detail berita
 	post, err := s.repo.FindBySlugOrID(id)
 	if err != nil {
 		return responses.PostResponse{}, err
 	}
+
+	// 2. Logika Anti-Spam: Cek apakah IP sudah melihat dalam 24 jam terakhir
+	since := time.Now().Add(-24 * time.Hour)
+	hasViewed, _ := s.repo.HasViewed(post.ID, ip, since)
+
+	if !hasViewed {
+		newView := domain.PostView{
+			PostID:    post.ID,
+			IPAddress: &ip,
+			UserAgent: &ua,
+			ViewedAt:  time.Now(),
+		}
+
+		// Simpan view baru ke database
+		if errAdd := s.repo.AddView(&newView); errAdd == nil {
+			// Ambil ulang data agar ViewsCount terbaru langsung dikirim ke user
+			updatedPost, errReload := s.repo.FindBySlugOrID(id)
+			if errReload == nil {
+				post = updatedPost
+			}
+		}
+	}
+
 	return responses.FromDomainToPostResponse(post), nil
 }
 
 // 4. UPDATE POST
-func (s *postService) UpdatePost(id string, req requests.PostUpdateRequest) (responses.PostResponse, error) {
+func (s *postService) UpdatePost(ctx context.Context, id string, req requests.PostUpdateRequest) (responses.PostResponse, error) {
 	// Cari data eksisting
 	post, err := s.repo.FindBySlugOrID(id)
 	if err != nil {
 		return responses.PostResponse{}, err
+	}
+
+	// Store old values for audit
+	oldValues := map[string]any{
+		"title":       post.Title,
+		"slug":        post.Slug,
+		"category_id": post.CategoryID,
 	}
 
 	// Update field jika dikirim
@@ -146,15 +197,33 @@ func (s *postService) UpdatePost(id string, req requests.PostUpdateRequest) (res
 
 	// Reload untuk response DTO terbaru
 	updatedPost, _ := s.repo.FindByID(post.ID)
+
+	// Log activity - Update Post
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModulePost, "Mengupdate post: "+post.Title, oldValues, map[string]any{
+		"id":          post.ID,
+		"title":       post.Title,
+		"slug":        post.Slug,
+		"category_id": post.CategoryID,
+	}, &post.ID)
+
 	return responses.FromDomainToPostResponse(updatedPost), nil
 }
 
 // 5. DELETE POST
-func (s *postService) DeletePost(id string) error {
+func (s *postService) DeletePost(ctx context.Context, id string) error {
 	post, err := s.repo.FindBySlugOrID(id)
 	if err != nil {
 		return err
 	}
+
+	// Log activity sebelum delete
+	s.logActivity(ctx, domain.ActionDelete, domain.ModulePost, "Menghapus post: "+post.Title, map[string]any{
+		"id":          post.ID,
+		"title":       post.Title,
+		"slug":        post.Slug,
+		"category_id": post.CategoryID,
+	}, nil, &post.ID)
+
 	return s.repo.Delete(&post, false) // Soft delete sesuai domain.go
 }
 
@@ -179,4 +248,38 @@ func (s *postService) processTags(tagsInput string) []domain.Tag {
 		}
 	}
 	return tags
+}
+
+// logActivity helper untuk mencatat activity log
+func (s *postService) logActivity(ctx context.Context, actionType domain.ActivityActionType, module domain.ActivityModuleType, description string, oldValue, newValue map[string]any, targetID *int) {
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		return // Skip if no user in context
+	}
+
+	ipAddress := utils.GetIPAddress(ctx)
+	userAgent := utils.GetUserAgent(ctx)
+
+	var ipPtr, uaPtr *string
+	if ipAddress != "" {
+		ipPtr = &ipAddress
+	}
+	if userAgent != "" {
+		uaPtr = &userAgent
+	}
+
+	log := &domain.ActivityLog{
+		UserID:      userID,
+		ActionType:  actionType,
+		Module:      module,
+		Description: &description,
+		TargetID:    targetID,
+		OldValue:    oldValue,
+		NewValue:    newValue,
+		IPAddress:   ipPtr,
+		UserAgent:   uaPtr,
+	}
+
+	// Ignore error - logging should not affect main operation
+	_ = s.activityLogRepo.Create(log)
 }

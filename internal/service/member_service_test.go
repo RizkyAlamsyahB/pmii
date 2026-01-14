@@ -8,6 +8,8 @@ import (
 
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
 )
 
 // MockMemberRepository adalah mock untuk MemberRepository
@@ -70,6 +72,22 @@ func (m *MockMemberRepository) FindActiveByDepartment(department string, page, l
 	return nil, 0, errors.New("mock not configured")
 }
 
+// MockActivityLogRepoForMember adalah mock untuk ActivityLogRepository
+type MockActivityLogRepoForMember struct {
+	CreateFunc func(log *domain.ActivityLog) error
+}
+
+func (m *MockActivityLogRepoForMember) Create(log *domain.ActivityLog) error {
+	if m.CreateFunc != nil {
+		return m.CreateFunc(log)
+	}
+	return nil
+}
+
+func (m *MockActivityLogRepoForMember) GetActivityLogs(offset, limit int, filter repository.ActivityLogFilter) ([]responses.ActivityLogResponse, int64, error) {
+	return nil, 0, nil
+}
+
 // ==================== CREATE TESTS ====================
 
 // Test: Upload error harus return error
@@ -81,7 +99,7 @@ func TestMemberCreate_ErrorUploadFailed(t *testing.T) {
 		},
 	}
 
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 	req := requests.CreateMemberRequest{FullName: "Test", Position: "Developer"}
 	mockFile := &multipart.FileHeader{Filename: "photo.jpg"}
 
@@ -112,7 +130,7 @@ func TestMemberCreate_ErrorDatabaseWithRollback(t *testing.T) {
 		},
 	}
 
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 	req := requests.CreateMemberRequest{FullName: "Test", Position: "Developer"}
 	mockFile := &multipart.FileHeader{Filename: "photo.jpg"}
 
@@ -140,7 +158,7 @@ func TestMemberGetAll_ValidationDefaultPagination(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 	// Test dengan invalid values
 	_, _, _, _, err := service.GetAll(context.Background(), 0, -5, "")
@@ -158,7 +176,7 @@ func TestMemberGetAll_ErrorDatabaseFailed(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 	_, _, _, _, err := service.GetAll(context.Background(), 1, 10, "")
 
@@ -189,7 +207,7 @@ func TestMemberGetAll_LogicLastPageCalculation(t *testing.T) {
 		}
 
 		mockCloudinary := &MockCloudinaryService{}
-		service := NewMemberService(mockRepo, mockCloudinary)
+		service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 		_, _, lastPage, _, err := service.GetAll(context.Background(), 1, tt.limit, "")
 
@@ -213,7 +231,7 @@ func TestMemberGetByID_ErrorNotFound(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 	_, err := service.GetByID(context.Background(), 999)
 
@@ -261,7 +279,7 @@ func TestMemberUpdate_LogicDeleteOldPhotoAfterSuccess(t *testing.T) {
 		},
 	}
 
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 	req := requests.UpdateMemberRequest{FullName: "Updated"}
 	mockFile := &multipart.FileHeader{Filename: "new.jpg"}
 
@@ -289,7 +307,7 @@ func TestMemberUpdate_ErrorUploadFailed(t *testing.T) {
 		},
 	}
 
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 	req := requests.UpdateMemberRequest{FullName: "Updated"}
 	mockFile := &multipart.FileHeader{Filename: "photo.jpg"}
 
@@ -330,7 +348,7 @@ func TestMemberUpdate_ErrorDatabaseWithRollback(t *testing.T) {
 		},
 	}
 
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 	req := requests.UpdateMemberRequest{FullName: "Updated"}
 	mockFile := &multipart.FileHeader{Filename: "new.jpg"}
 
@@ -356,7 +374,7 @@ func TestMemberUpdate_ErrorNotFound(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 	_, err := service.Update(context.Background(), 999, requests.UpdateMemberRequest{}, nil)
 
@@ -391,7 +409,7 @@ func TestMemberDelete_LogicDeleteDatabaseFirst(t *testing.T) {
 		},
 	}
 
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 	err := service.Delete(context.Background(), 1)
 
@@ -421,7 +439,7 @@ func TestMemberDelete_ErrorDatabaseFailed(t *testing.T) {
 		},
 	}
 
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 	err := service.Delete(context.Background(), 1)
 
@@ -442,7 +460,7 @@ func TestMemberDelete_ErrorNotFound(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewMemberService(mockRepo, mockCloudinary)
+	service := NewMemberService(mockRepo, mockCloudinary, &MockActivityLogRepoForMember{})
 
 	err := service.Delete(context.Background(), 999)
 

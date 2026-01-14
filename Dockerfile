@@ -21,6 +21,7 @@ RUN apk --no-cache add ca-certificates
 
 COPY --from=builder /app/pmii-backend .
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/seeds ./seeds
 
 EXPOSE 8080
 

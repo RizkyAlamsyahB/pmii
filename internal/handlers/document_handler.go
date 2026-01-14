@@ -25,7 +25,7 @@ func NewDocumentHandler(documentService service.DocumentService) *DocumentHandle
 // Create handles POST /v1/admin/documents
 func (h *DocumentHandler) Create(c *gin.Context) {
 	// Set timeout 30 menit untuk upload file besar
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Minute)
+	ctx, cancel := context.WithTimeout(GetContextWithRequestInfo(c), 30*time.Minute)
 	defer cancel()
 
 	var req requests.CreateDocumentRequest
@@ -91,7 +91,7 @@ func (h *DocumentHandler) GetByID(c *gin.Context) {
 // Update handles PUT /v1/admin/documents/:id
 func (h *DocumentHandler) Update(c *gin.Context) {
 	// Set timeout 2 menit untuk upload file besar
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(GetContextWithRequestInfo(c), 2*time.Minute)
 	defer cancel()
 
 	id, err := strconv.Atoi(c.Param("id"))
@@ -135,7 +135,7 @@ func (h *DocumentHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.documentService.Delete(c.Request.Context(), id); err != nil {
+	if err := h.documentService.Delete(GetContextWithRequestInfo(c), id); err != nil {
 		if err.Error() == "dokumen tidak ditemukan" {
 			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
 			return

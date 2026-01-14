@@ -52,8 +52,8 @@ func (r *testimonialRepository) FindAll(page, limit int, search string) ([]domai
 	// Calculate offset
 	offset := (page - 1) * limit
 
-	// Get paginated data
-	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&testimonials).Error
+	// Get paginated data (ASC - oldest first)
+	err := query.Order("id ASC").Limit(limit).Offset(offset).Find(&testimonials).Error
 	return testimonials, total, err
 }
 

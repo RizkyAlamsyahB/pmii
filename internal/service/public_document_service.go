@@ -97,8 +97,8 @@ func (s *publicDocumentService) toPublicResponseDTO(d *domain.Document) response
 	fileURL := s.cloudinaryService.GetDownloadURL(folder, d.FileURI)
 
 	return responses.PublicDocumentResponse{
-		ID:      d.ID,
-		Name:    d.Name,
-		FileURL: fileURL,
+		Name:          d.Name,
+		FileTypeLabel: d.FileType.GetLabel(),
+		FileURL:       fileURL,
 	}
 }

@@ -54,7 +54,7 @@ func (h *AboutHandler) Update(c *gin.Context) {
 	}
 
 	// Call service
-	about, err := h.aboutService.Update(c.Request.Context(), req, imageFile)
+	about, err := h.aboutService.Update(GetContextWithRequestInfo(c), req, imageFile)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
