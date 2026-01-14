@@ -9,6 +9,7 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/service"
 	"github.com/garuda-labs-1/pmii-be/pkg/cloudinary"
 	"github.com/garuda-labs-1/pmii-be/pkg/database"
+	"github.com/garuda-labs-1/pmii-be/pkg/database/seeds"
 	"github.com/garuda-labs-1/pmii-be/pkg/logger"
 	"github.com/garuda-labs-1/pmii-be/pkg/utils"
 	"github.com/gin-gonic/gin"
@@ -68,17 +69,20 @@ func main() {
 		logger.Error.Fatalf("Failed to seed default users: %v", err)
 	}
 
-	// 4d. Seed Dashboard Data (Auto-run on startup - hanya jika belum ada data)
-	if err := database.SeedDashboardData(db); err != nil {
-		logger.Error.Fatalf("Failed to seed dashboard data: %v", err)
-	}
-
 	// 5. Initialize Cloudinary Service
 	cloudinaryService, err := cloudinary.NewService(cfg.Cloudinary.URL)
 	if err != nil {
 		logger.Error.Fatalf("Failed to initialize Cloudinary: %v", err)
 	}
 	logger.Info.Println("✅ Cloudinary service initialized")
+
+	// 5a. Seed Content Data (Development only)
+	if cfg.Server.Environment == "development" {
+		seeder := seeds.NewSeeder(db, cloudinaryService, "./seeds")
+		if err := seeder.SeedAll(); err != nil {
+			logger.Error.Printf("⚠️ Content seeding completed with errors: %v", err)
+		}
+	}
 
 	// 6. Initialize Repositories (Data Layer)
 	userRepo := repository.NewUserRepository(db)
