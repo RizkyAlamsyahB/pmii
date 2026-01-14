@@ -48,7 +48,7 @@ func (h *ContactHandler) Update(c *gin.Context) {
 		return
 	}
 
-	result, err := h.contactService.Update(c.Request.Context(), req)
+	result, err := h.contactService.Update(GetContextWithRequestInfo(c), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return

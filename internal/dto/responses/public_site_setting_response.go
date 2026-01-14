@@ -1,7 +1,8 @@
 package responses
 
-// SiteSettingResponse adalah DTO untuk response site settings
-type SiteSettingResponse struct {
+// PublicSiteSettingResponse adalah response site settings untuk public
+// Tidak menyertakan updatedAt karena tidak diperlukan FE
+type PublicSiteSettingResponse struct {
 	SiteName        *string `json:"siteName,omitempty"`
 	SiteTitle       *string `json:"siteTitle,omitempty"`
 	SiteDescription *string `json:"siteDescription,omitempty"`

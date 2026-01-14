@@ -27,9 +27,15 @@ func SetupRoutes(
 	documentHandler *handlers.DocumentHandler,
 	publicDocumentHandler *handlers.PublicDocumentHandler,
 	dashboardHandler *handlers.DashboardHandler,
+	publicSiteSettingHandler *handlers.PublicSiteSettingHandler,
 	allowedOrigins string,
 	environment string,
 ) {
+
+	// --- Activity Log untuk Audit (inisialisasi pertama karena digunakan banyak service) ---
+	activityLogRepo := repository.NewActivityLogRepository()
+	activityLogSvc := service.NewActivityLogService(activityLogRepo)
+	activityLogHandler := handlers.NewActivityLogHandler(activityLogSvc)
 
 	// Inisialisasi Dependency untuk News Publik
 	newsRepo := repository.NewNewsRepository()
@@ -37,20 +43,21 @@ func SetupRoutes(
 	newsHandler := handlers.NewNewsHandler(newsSvc)
 	// --- Inisialisasi Modul Post (Clean Architecture) ---
 	postRepo := repository.NewPostRepository()
-	postSvc := service.NewPostService(postRepo)
+	postSvc := service.NewPostService(postRepo, activityLogRepo)
 	postHandler := handlers.NewPostHandler(postSvc)
 
 	catRepo := repository.NewCategoryRepository()
-	catSvc := service.NewCategoryService(catRepo)
+	catSvc := service.NewCategoryService(catRepo, activityLogRepo)
 	catHandler := handlers.NewCategoryHandler(catSvc)
 
 	tagRepo := repository.NewTagRepository()
-	tagSvc := service.NewTagService(tagRepo)
+	tagSvc := service.NewTagService(tagRepo, activityLogRepo)
 	tagHandler := handlers.NewTagHandler(tagSvc)
 
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
+	r.Use(middleware.RequestInfoMiddleware()) // Inject IP and User-Agent for activity logging
 
 	// Rate Limiter untuk login endpoint (60 request per menit = 1 req/s, burst 60)
 	loginLimiter := middleware.NewRateLimiter(rate.Limit(1), 60)
@@ -155,6 +162,9 @@ func SetupRoutes(
 			adminRoutes.GET("/documents/:id", documentHandler.GetByID)    // GET /v1/admin/documents/:id
 			adminRoutes.PUT("/documents/:id", documentHandler.Update)     // PUT /v1/admin/documents/:id
 			adminRoutes.DELETE("/documents/:id", documentHandler.Delete)  // DELETE /v1/admin/documents/:id
+
+			// Activity Log Routes - Admin Only
+			adminRoutes.GET("/activity-logs", activityLogHandler.GetActivityLogs) // GET /v1/admin/activity-logs
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)
@@ -169,29 +179,50 @@ func SetupRoutes(
 			userRoutes.GET("/dashboard/periods", dashboardHandler.GetAvailablePeriods) // GET /v1/users/dashboard/periods
 		}
 
+		// Public Posts Routes - Untuk pengunjung melihat postingan
 		posts := v1.Group("/posts")
 		{
 			posts.GET("", postHandler.GetPosts)
-			posts.POST("", postHandler.CreatePost)
 			posts.GET("/:id", postHandler.GetPost)
-			posts.PUT("/:id", postHandler.UpdatePost)
-			posts.DELETE("/:id", postHandler.DeletePost)
 		}
 
+		// Protected Posts Routes - Requires Admin or Author
+		postsProtected := v1.Group("/posts")
+		postsProtected.Use(middleware.AuthMiddleware(), middleware.RequireAnyRole("1", "2"))
+		{
+			postsProtected.POST("", postHandler.CreatePost)
+			postsProtected.PUT("/:id", postHandler.UpdatePost)
+			postsProtected.DELETE("/:id", postHandler.DeletePost)
+		}
+
+		// Public Categories Routes
 		categories := v1.Group("/categories")
 		{
 			categories.GET("", catHandler.GetCategories)
-			categories.POST("", catHandler.CreateCategory)
-			categories.PUT("/:id", catHandler.UpdateCategory)
-			categories.DELETE("/:id", catHandler.DeleteCategory)
 		}
 
+		// Protected Categories Routes - Requires Admin
+		categoriesProtected := v1.Group("/categories")
+		categoriesProtected.Use(middleware.AuthMiddleware(), middleware.AdminOnly())
+		{
+			categoriesProtected.POST("", catHandler.CreateCategory)
+			categoriesProtected.PUT("/:id", catHandler.UpdateCategory)
+			categoriesProtected.DELETE("/:id", catHandler.DeleteCategory)
+		}
+
+		// Public Tags Routes
 		tags := v1.Group("/tags")
 		{
 			tags.GET("", tagHandler.GetTags)
-			tags.POST("", tagHandler.CreateTag)
-			tags.PUT("/:id", tagHandler.UpdateTag)
-			tags.DELETE("/:id", tagHandler.DeleteTag)
+		}
+
+		// Protected Tags Routes - Requires Admin
+		tagsProtected := v1.Group("/tags")
+		tagsProtected.Use(middleware.AuthMiddleware(), middleware.AdminOnly())
+		{
+			tagsProtected.POST("", tagHandler.CreateTag)
+			tagsProtected.PUT("/:id", tagHandler.UpdateTag)
+			tagsProtected.DELETE("/:id", tagHandler.DeleteTag)
 		}
 
 	}

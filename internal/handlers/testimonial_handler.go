@@ -49,7 +49,7 @@ func (h *TestimonialHandler) Create(c *gin.Context) {
 	}
 
 	// Call service
-	testimonial, err := h.testimonialService.Create(c.Request.Context(), req, photoFile)
+	testimonial, err := h.testimonialService.Create(GetContextWithRequestInfo(c), req, photoFile)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
@@ -128,7 +128,7 @@ func (h *TestimonialHandler) Update(c *gin.Context) {
 	}
 
 	// Call service
-	testimonial, err := h.testimonialService.Update(c.Request.Context(), id, req, photoFile)
+	testimonial, err := h.testimonialService.Update(GetContextWithRequestInfo(c), id, req, photoFile)
 	if err != nil {
 		if err.Error() == "testimonial tidak ditemukan" {
 			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
@@ -151,7 +151,7 @@ func (h *TestimonialHandler) Delete(c *gin.Context) {
 	}
 
 	// Call service
-	if err := h.testimonialService.Delete(c.Request.Context(), id); err != nil {
+	if err := h.testimonialService.Delete(GetContextWithRequestInfo(c), id); err != nil {
 		if err.Error() == "testimonial tidak ditemukan" {
 			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
 			return

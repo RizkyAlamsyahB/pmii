@@ -55,8 +55,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Call service layer
-	user, token, err := h.authService.Login(req.Email, req.Password)
+	// Call service layer with context for activity logging
+	ctx := GetContextWithRequestInfo(c)
+	user, token, err := h.authService.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Email atau password salah"))
 		return
@@ -94,8 +95,16 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 	token := parts[1]
 
-	// Logout (blacklist token)
-	if err := h.authService.Logout(token); err != nil {
+	// Get user ID from context (set by auth middleware)
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Token tidak valid atau sesi telah berakhir"))
+		return
+	}
+
+	// Logout (blacklist token) with context for activity logging
+	ctx := GetContextWithRequestInfo(c)
+	if err := h.authService.Logout(ctx, userID.(int), token); err != nil {
 		c.JSON(http.StatusUnauthorized, responses.ErrorResponse(401, "Token tidak valid atau sesi telah berakhir"))
 		return
 	}

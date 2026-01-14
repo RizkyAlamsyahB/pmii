@@ -1,10 +1,48 @@
 package handlers
 
 import (
+	"context"
 	"strings"
 
+	"github.com/garuda-labs-1/pmii-be/pkg/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
+
+// GetContextWithRequestInfo creates a context.Context with user ID, IP address and user agent
+// extracted from gin.Context. This should be used when calling services that need activity logging.
+func GetContextWithRequestInfo(c *gin.Context) context.Context {
+	ctx := c.Request.Context()
+
+	// Add user ID if available (after auth middleware)
+	if userID, exists := c.Get("user_id"); exists {
+		if id, ok := userID.(int); ok {
+			ctx = utils.WithUserID(ctx, id)
+		}
+	}
+
+	// Add IP address
+	if ip, exists := c.Get(string(utils.ContextKeyIPAddress)); exists {
+		if ipStr, ok := ip.(string); ok {
+			ctx = context.WithValue(ctx, utils.ContextKeyIPAddress, ipStr)
+		}
+	} else {
+		// Fallback to ClientIP if middleware not applied
+		ctx = context.WithValue(ctx, utils.ContextKeyIPAddress, c.ClientIP())
+	}
+
+	// Add user agent
+	if ua, exists := c.Get(string(utils.ContextKeyUserAgent)); exists {
+		if uaStr, ok := ua.(string); ok {
+			ctx = context.WithValue(ctx, utils.ContextKeyUserAgent, uaStr)
+		}
+	} else {
+		// Fallback to header if middleware not applied
+		ctx = context.WithValue(ctx, utils.ContextKeyUserAgent, c.GetHeader("User-Agent"))
+	}
+
+	return ctx
+}
 
 // ValidationErrors mengubah validator.ValidationErrors ke map[string]string
 // untuk response yang lebih readable oleh frontend

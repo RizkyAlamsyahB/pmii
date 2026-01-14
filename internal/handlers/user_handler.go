@@ -171,7 +171,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	// Create user via service
-	user, err := h.userService.CreateUser(c.Request.Context(), &req, photoFile)
+	user, err := h.userService.CreateUser(GetContextWithRequestInfo(c), &req, photoFile)
 	if err != nil {
 		// Handle specific errors
 		switch {
@@ -234,7 +234,7 @@ func (h *UserHandler) UpdateUserByID(c *gin.Context) {
 	}
 
 	// Update user via service
-	user, err := h.userService.UpdateUser(c.Request.Context(), userID, &req, photoFile)
+	user, err := h.userService.UpdateUser(GetContextWithRequestInfo(c), userID, &req, photoFile)
 	if err != nil {
 		// Handle specific errors
 		switch {
@@ -280,7 +280,7 @@ func (h *UserHandler) DeleteUserByID(c *gin.Context) {
 	}
 
 	// Delete user via service
-	if err := h.userService.DeleteUser(c.Request.Context(), userID); err != nil {
+	if err := h.userService.DeleteUser(GetContextWithRequestInfo(c), userID); err != nil {
 		// Handle specific errors
 		if errors.Is(err, service.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))

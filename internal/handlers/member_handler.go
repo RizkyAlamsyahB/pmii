@@ -61,7 +61,7 @@ func (h *MemberHandler) Create(c *gin.Context) {
 	}
 
 	// Call service
-	member, err := h.memberService.Create(c.Request.Context(), req, photoFile)
+	member, err := h.memberService.Create(GetContextWithRequestInfo(c), req, photoFile)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
@@ -148,7 +148,7 @@ func (h *MemberHandler) Update(c *gin.Context) {
 	}
 
 	// Call service
-	member, err := h.memberService.Update(c.Request.Context(), id, req, photoFile)
+	member, err := h.memberService.Update(GetContextWithRequestInfo(c), id, req, photoFile)
 	if err != nil {
 		if err.Error() == "member tidak ditemukan" {
 			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
@@ -169,7 +169,7 @@ func (h *MemberHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.memberService.Delete(c.Request.Context(), id); err != nil {
+	if err := h.memberService.Delete(GetContextWithRequestInfo(c), id); err != nil {
 		if err.Error() == "member tidak ditemukan" {
 			c.JSON(http.StatusNotFound, responses.ErrorResponse(404, err.Error()))
 			return
