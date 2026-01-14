@@ -9,6 +9,7 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/pkg/utils"
 )
 
 // CloudinaryService interface untuk operasi cloudinary
@@ -26,28 +27,30 @@ type CloudinaryService interface {
 
 // TestimonialService interface untuk business logic testimonial
 type TestimonialService interface {
-	Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
+	Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error)
 	GetAll(ctx context.Context, page, limit int, search string) ([]responses.TestimonialResponse, int, int, int64, error)
-	GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error)
-	Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error)
+	GetByID(ctx context.Context, id int) (*responses.TestimonialDetailResponse, error)
+	Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error)
 	Delete(ctx context.Context, id int) error
 }
 
 type testimonialService struct {
 	testimonialRepo   repository.TestimonialRepository
 	cloudinaryService CloudinaryService
+	activityLogRepo   repository.ActivityLogRepository
 }
 
 // NewTestimonialService constructor untuk TestimonialService
-func NewTestimonialService(testimonialRepo repository.TestimonialRepository, cloudinaryService CloudinaryService) TestimonialService {
+func NewTestimonialService(testimonialRepo repository.TestimonialRepository, cloudinaryService CloudinaryService, activityLogRepo repository.ActivityLogRepository) TestimonialService {
 	return &testimonialService{
 		testimonialRepo:   testimonialRepo,
 		cloudinaryService: cloudinaryService,
+		activityLogRepo:   activityLogRepo,
 	}
 }
 
 // Create membuat testimonial baru dengan upload foto ke Cloudinary
-func (s *testimonialService) Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error) {
+func (s *testimonialService) Create(ctx context.Context, req requests.CreateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error) {
 	// Upload photo ke Cloudinary (jika ada)
 	var photoFilename *string
 	if photoFile != nil {
@@ -88,7 +91,15 @@ func (s *testimonialService) Create(ctx context.Context, req requests.CreateTest
 	}
 
 	// Convert to response DTO
-	return s.toResponseDTO(testimonial), nil
+	resp := s.toResponseDTO(testimonial)
+
+	// Log activity - Create Testimonial
+	s.logActivity(ctx, domain.ActionCreate, domain.ModuleTestimoni, "Membuat testimonial baru: "+testimonial.Name, nil, map[string]any{
+		"id":   testimonial.ID,
+		"name": testimonial.Name,
+	}, &testimonial.ID)
+
+	return resp, nil
 }
 
 // GetAll mengambil semua testimonial dengan pagination dan search
@@ -132,17 +143,17 @@ func (s *testimonialService) GetAll(ctx context.Context, page, limit int, search
 }
 
 // GetByID mengambil testimonial berdasarkan ID
-func (s *testimonialService) GetByID(ctx context.Context, id int) (*responses.TestimonialResponse, error) {
+func (s *testimonialService) GetByID(ctx context.Context, id int) (*responses.TestimonialDetailResponse, error) {
 	testimonial, err := s.testimonialRepo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("testimonial tidak ditemukan")
 	}
 
-	return s.toResponseDTO(testimonial), nil
+	return s.toDetailResponseDTO(testimonial), nil
 }
 
 // Update mengupdate testimonial dengan optional upload foto baru
-func (s *testimonialService) Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialResponse, error) {
+func (s *testimonialService) Update(ctx context.Context, id int, req requests.UpdateTestimonialRequest, photoFile *multipart.FileHeader) (*responses.TestimonialDetailResponse, error) {
 	// Ambil testimonial existing
 	testimonial, err := s.testimonialRepo.FindByID(id)
 	if err != nil {
@@ -151,6 +162,17 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 
 	// Simpan foto lama untuk rollback
 	oldPhotoURI := testimonial.PhotoURI
+
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":           testimonial.ID,
+		"name":         testimonial.Name,
+		"organization": testimonial.Organization,
+		"position":     testimonial.Position,
+		"content":      testimonial.Content,
+		"photo_uri":    testimonial.PhotoURI,
+		"is_active":    testimonial.IsActive,
+	}
 
 	// Upload foto baru ke Cloudinary (jika ada)
 	var newPhotoFilename *string
@@ -194,6 +216,17 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 		_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *oldPhotoURI)
 	}
 
+	// Log activity - Update Testimonial
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleTestimoni, "Mengupdate testimonial: "+testimonial.Name, oldValues, map[string]any{
+		"id":           testimonial.ID,
+		"name":         testimonial.Name,
+		"organization": testimonial.Organization,
+		"position":     testimonial.Position,
+		"content":      testimonial.Content,
+		"photo_uri":    testimonial.PhotoURI,
+		"is_active":    testimonial.IsActive,
+	}, &testimonial.ID)
+
 	return s.toResponseDTO(testimonial), nil
 }
 
@@ -204,6 +237,12 @@ func (s *testimonialService) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return errors.New("testimonial tidak ditemukan")
 	}
+
+	// Log activity sebelum delete
+	s.logActivity(ctx, domain.ActionDelete, domain.ModuleTestimoni, "Menghapus testimonial: "+testimonial.Name, map[string]any{
+		"id":   testimonial.ID,
+		"name": testimonial.Name,
+	}, nil, &testimonial.ID)
 
 	// Hapus dari database
 	if err := s.testimonialRepo.Delete(id); err != nil {
@@ -218,7 +257,7 @@ func (s *testimonialService) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-// toResponseDTO converts domain.Testimonial to responses.TestimonialResponse
+// toResponseDTO converts domain.Testimonial to responses.TestimonialResponse (for list)
 func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.TestimonialResponse {
 	var imageURL string
 	if t.PhotoURI != nil {
@@ -226,6 +265,22 @@ func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.Tes
 	}
 
 	return &responses.TestimonialResponse{
+		ID:       t.ID,
+		ImageUrl: imageURL,
+		Name:     t.Name,
+		Position: t.Position,
+		Content:  t.Content,
+	}
+}
+
+// toDetailResponseDTO converts domain.Testimonial to responses.TestimonialDetailResponse (for detail/edit)
+func (s *testimonialService) toDetailResponseDTO(t *domain.Testimonial) *responses.TestimonialDetailResponse {
+	var imageURL string
+	if t.PhotoURI != nil {
+		imageURL = s.cloudinaryService.GetImageURL("testimonials", *t.PhotoURI)
+	}
+
+	return &responses.TestimonialDetailResponse{
 		ID:           t.ID,
 		Name:         t.Name,
 		Organization: t.Organization,
@@ -233,6 +288,39 @@ func (s *testimonialService) toResponseDTO(t *domain.Testimonial) *responses.Tes
 		Content:      t.Content,
 		ImageUrl:     imageURL,
 		IsActive:     t.IsActive,
-		CreatedAt:    t.CreatedAt,
 	}
+}
+
+// logActivity helper untuk mencatat activity log
+func (s *testimonialService) logActivity(ctx context.Context, actionType domain.ActivityActionType, module domain.ActivityModuleType, description string, oldValue, newValue map[string]any, targetID *int) {
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		return // Skip if no user in context
+	}
+
+	ipAddress := utils.GetIPAddress(ctx)
+	userAgent := utils.GetUserAgent(ctx)
+
+	var ipPtr, uaPtr *string
+	if ipAddress != "" {
+		ipPtr = &ipAddress
+	}
+	if userAgent != "" {
+		uaPtr = &userAgent
+	}
+
+	log := &domain.ActivityLog{
+		UserID:      userID,
+		ActionType:  actionType,
+		Module:      module,
+		Description: &description,
+		TargetID:    targetID,
+		OldValue:    oldValue,
+		NewValue:    newValue,
+		IPAddress:   ipPtr,
+		UserAgent:   uaPtr,
+	}
+
+	// Ignore error - logging should not affect main operation
+	_ = s.activityLogRepo.Create(log)
 }

@@ -55,8 +55,8 @@ func (r *memberRepository) FindAll(page, limit int, search string) ([]domain.Mem
 	// Calculate offset
 	offset := (page - 1) * limit
 
-	// Get paginated data
-	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&members).Error
+	// Get paginated data (ASC - oldest first)
+	err := query.Order("id ASC").Limit(limit).Offset(offset).Find(&members).Error
 	return members, total, err
 }
 

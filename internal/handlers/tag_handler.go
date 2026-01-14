@@ -39,7 +39,7 @@ func (h *TagHandler) CreateTag(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.Create(req)
+	res, err := h.svc.Create(GetContextWithRequestInfo(c), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menyimpan tag"))
 		return
@@ -56,7 +56,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.Update(id, req)
+	res, err := h.svc.Update(GetContextWithRequestInfo(c), id, req)
 	if err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Tag tidak ditemukan"))
 		return
@@ -67,7 +67,7 @@ func (h *TagHandler) UpdateTag(c *gin.Context) {
 
 func (h *TagHandler) DeleteTag(c *gin.Context) {
 	id := c.Param("id")
-	if err := h.svc.Delete(id); err != nil {
+	if err := h.svc.Delete(GetContextWithRequestInfo(c), id); err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menghapus tag"))
 		return
 	}

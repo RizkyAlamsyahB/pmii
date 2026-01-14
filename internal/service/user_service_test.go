@@ -8,6 +8,8 @@ import (
 
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
 )
 
 // MockUserRepository adalah mock untuk UserRepository (untuk testing UserService)
@@ -122,6 +124,22 @@ func (m *MockCloudinaryServiceForUserService) GetDownloadURL(folder string, file
 	return ""
 }
 
+// MockActivityLogRepoForUser adalah mock untuk ActivityLogRepository
+type MockActivityLogRepoForUser struct {
+	CreateFunc func(log *domain.ActivityLog) error
+}
+
+func (m *MockActivityLogRepoForUser) Create(log *domain.ActivityLog) error {
+	if m.CreateFunc != nil {
+		return m.CreateFunc(log)
+	}
+	return nil
+}
+
+func (m *MockActivityLogRepoForUser) GetActivityLogs(offset, limit int, filter repository.ActivityLogFilter) ([]responses.ActivityLogResponse, int64, error) {
+	return nil, 0, nil
+}
+
 // Helper functions untuk membuat pointer dari value
 func strPtr(s string) *string { return &s }
 func intPtr(i int) *int       { return &i }
@@ -198,7 +216,7 @@ func TestGetAllUsers(t *testing.T) {
 					return tt.mockUsers, tt.mockTotal, tt.mockErr
 				},
 			}
-			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 			users, currentPage, lastPage, total, err := service.GetAllUsers(context.Background(), tt.page, tt.limit)
 
 			if tt.expectedErr != nil {
@@ -239,7 +257,7 @@ func TestGetAllUsers_DefaultValues(t *testing.T) {
 			return []domain.User{}, 0, nil
 		},
 	}
-	service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+	service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 	service.GetAllUsers(context.Background(), 0, 0) // Pass invalid values to test defaults
 }
 
@@ -289,7 +307,7 @@ func TestGetUserByID(t *testing.T) {
 					return nil, errors.New("not found")
 				},
 			}
-			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 			user, err := service.GetUserByID(context.Background(), tt.userID)
 
 			if tt.expectedErr != nil {
@@ -333,7 +351,7 @@ func TestCreateUser_PasswordValidation(t *testing.T) {
 				FindByEmailFunc: func(email string) (*domain.User, error) { return nil, errors.New("not found") },
 				CreateFunc:      func(user *domain.User) error { user.ID = 1; return nil },
 			}
-			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 			req := &requests.CreateUserRequest{
 				FullName: "Test User",
 				Email:    "test@example.com",
@@ -408,7 +426,7 @@ func TestCreateUser_ErrorCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo, mockCloudinary := tt.setupMock()
-			service := NewUserService(mockRepo, mockCloudinary)
+			service := NewUserService(mockRepo, mockCloudinary, &MockActivityLogRepoForUser{})
 			req := &requests.CreateUserRequest{
 				FullName: "Test User",
 				Email:    "test@example.com",
@@ -443,7 +461,7 @@ func TestCreateUser_WithPhotoFile(t *testing.T) {
 		},
 	}
 
-	service := NewUserService(mockRepo, mockCloudinary)
+	service := NewUserService(mockRepo, mockCloudinary, &MockActivityLogRepoForUser{})
 	req := &requests.CreateUserRequest{FullName: "Test User", Email: "test@example.com", Password: "password123"}
 	user, err := service.CreateUser(context.Background(), req, &multipart.FileHeader{Filename: "test.jpg"})
 
@@ -481,7 +499,7 @@ func TestCreateUser_RollbackOnDBError(t *testing.T) {
 		},
 	}
 
-	service := NewUserService(mockRepo, mockCloudinary)
+	service := NewUserService(mockRepo, mockCloudinary, &MockActivityLogRepoForUser{})
 	req := &requests.CreateUserRequest{FullName: "Test User", Email: "test@example.com", Password: "password123"}
 	user, err := service.CreateUser(context.Background(), req, &multipart.FileHeader{Filename: "test.jpg"})
 
@@ -512,7 +530,7 @@ func TestUpdateUser_Success(t *testing.T) {
 		FindByEmailFunc: func(email string) (*domain.User, error) { return nil, errors.New("not found") },
 		UpdateFunc:      func(user *domain.User) error { return nil },
 	}
-	service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+	service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 	req := &requests.UpdateUserRequest{
 		FullName: strPtr("New Name"),
 		Email:    strPtr("new@example.com"),
@@ -554,7 +572,7 @@ func TestUpdateUser_PasswordValidation(t *testing.T) {
 				},
 				UpdateFunc: func(user *domain.User) error { return nil },
 			}
-			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 			req := &requests.UpdateUserRequest{
 				FullName: strPtr(existingUser.FullName),
 				Email:    strPtr(existingUser.Email),
@@ -653,7 +671,7 @@ func TestUpdateUser_ErrorCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo, mockCloudinary := tt.setupMock()
-			service := NewUserService(mockRepo, mockCloudinary)
+			service := NewUserService(mockRepo, mockCloudinary, &MockActivityLogRepoForUser{})
 			req := &requests.UpdateUserRequest{
 				FullName: strPtr("Updated Name"),
 				Email:    strPtr("user2@example.com"),
@@ -680,7 +698,7 @@ func TestUpdateUser_SameEmailAllowed(t *testing.T) {
 		FindByIDFunc: func(id int) (*domain.User, error) { return existingUser, nil },
 		UpdateFunc:   func(user *domain.User) error { return nil },
 	}
-	service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+	service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 	req := &requests.UpdateUserRequest{
 		FullName: strPtr("User One Updated"),
 		Email:    strPtr("user1@example.com"), // Email sama
@@ -738,7 +756,7 @@ func TestUpdateUser_PartialUpdate(t *testing.T) {
 				},
 				UpdateFunc: func(user *domain.User) error { return nil },
 			}
-			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 			user, err := service.UpdateUser(context.Background(), 1, tt.request, nil)
 
 			if err != nil {
@@ -775,7 +793,7 @@ func TestUpdateUser_WithNewPhotoFile(t *testing.T) {
 		},
 	}
 
-	service := NewUserService(mockRepo, mockCloudinary)
+	service := NewUserService(mockRepo, mockCloudinary, &MockActivityLogRepoForUser{})
 	req := &requests.UpdateUserRequest{FullName: strPtr("Test User"), Email: strPtr("test@example.com"), Role: intPtr(2), IsActive: boolPtr(true)}
 	user, err := service.UpdateUser(context.Background(), 1, req, &multipart.FileHeader{Filename: "new-photo.jpg"})
 
@@ -845,7 +863,7 @@ func TestDeleteUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := tt.setupMock()
-			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{})
+			service := NewUserService(mockRepo, &MockCloudinaryServiceForUserService{}, &MockActivityLogRepoForUser{})
 			err := service.DeleteUser(context.Background(), tt.userID)
 
 			if tt.expectedErr != nil {
@@ -880,7 +898,7 @@ func TestDeleteUser_NoPhotoCleanupOnSoftDelete(t *testing.T) {
 		},
 	}
 
-	service := NewUserService(mockRepo, mockCloudinary)
+	service := NewUserService(mockRepo, mockCloudinary, &MockActivityLogRepoForUser{})
 	err := service.DeleteUser(context.Background(), 1)
 
 	if err != nil {

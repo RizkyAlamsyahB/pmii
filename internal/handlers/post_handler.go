@@ -58,8 +58,9 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	file, _ := c.FormFile("image")
 	req.Image = file
 
-	// Eksekusi pembuatan post melalui service
-	res, err := h.svc.CreatePost(req)
+	// Eksekusi pembuatan post melalui service dengan context untuk logging
+	ctx := GetContextWithRequestInfo(c)
+	res, err := h.svc.CreatePost(ctx, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal membuat berita"))
 		return
@@ -101,7 +102,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 	file, _ := c.FormFile("image")
 	req.Image = file
 
-	res, err := h.svc.UpdatePost(id, req)
+	res, err := h.svc.UpdatePost(GetContextWithRequestInfo(c), id, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal memperbarui berita"))
 		return
@@ -114,7 +115,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 func (h *PostHandler) DeletePost(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.svc.DeletePost(id); err != nil {
+	if err := h.svc.DeletePost(GetContextWithRequestInfo(c), id); err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Berita tidak ditemukan atau gagal dihapus"))
 		return
 	}

@@ -1,11 +1,14 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
 )
 
 // MockUserRepository adalah mock untuk UserRepository
@@ -43,6 +46,22 @@ func (m *MockUserRepository) FindAll(page, limit int) ([]domain.User, int64, err
 	return nil, 0, nil
 }
 
+// MockActivityLogRepoForAuth adalah mock untuk ActivityLogRepository
+type MockActivityLogRepoForAuth struct {
+	CreateFunc func(log *domain.ActivityLog) error
+}
+
+func (m *MockActivityLogRepoForAuth) Create(log *domain.ActivityLog) error {
+	if m.CreateFunc != nil {
+		return m.CreateFunc(log)
+	}
+	return nil
+}
+
+func (m *MockActivityLogRepoForAuth) GetActivityLogs(offset, limit int, filter repository.ActivityLogFilter) ([]responses.ActivityLogResponse, int64, error) {
+	return nil, 0, nil
+}
+
 // TestLogin_UserNotFound menguji login dengan email yang tidak terdaftar
 func TestLogin_UserNotFound(t *testing.T) {
 	mockRepo := &MockUserRepository{
@@ -51,8 +70,8 @@ func TestLogin_UserNotFound(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
-	user, token, err := authService.Login("notfound@example.com", "password123")
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
+	user, token, err := authService.Login(context.Background(), "notfound@example.com", "password123")
 
 	if err == nil {
 		t.Error("Expected error, got nil")
@@ -82,8 +101,8 @@ func TestLogin_WrongPassword(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
-	user, token, err := authService.Login("test@example.com", "wrongpassword")
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
+	user, token, err := authService.Login(context.Background(), "test@example.com", "wrongpassword")
 
 	if err == nil {
 		t.Error("Expected error for wrong password, got nil")
@@ -112,8 +131,8 @@ func TestLogin_InactiveUser(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
-	user, token, err := authService.Login("test@example.com", "admin123")
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
+	user, token, err := authService.Login(context.Background(), "test@example.com", "admin123")
 
 	if err == nil {
 		t.Error("Expected error for inactive user, got nil")
@@ -134,7 +153,7 @@ func TestChangePassword_UserNotFound(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
 	req := requests.ChangePasswordRequest{
 		OldPassword: "oldpass123!",
 		NewPassword: "newpass123!",
@@ -166,7 +185,7 @@ func TestChangePassword_InactiveUser(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
 	req := requests.ChangePasswordRequest{
 		OldPassword: "admin123",
 		NewPassword: "newpass123!",
@@ -198,7 +217,7 @@ func TestChangePassword_WrongOldPassword(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
 	req := requests.ChangePasswordRequest{
 		OldPassword: "wrongpassword",
 		NewPassword: "newpass123!",
@@ -230,7 +249,7 @@ func TestChangePassword_SamePassword(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
 	req := requests.ChangePasswordRequest{
 		OldPassword: "admin123",
 		NewPassword: "admin123",
@@ -270,7 +289,7 @@ func TestChangePassword_Success(t *testing.T) {
 		},
 	}
 
-	authService := NewAuthService(mockRepo)
+	authService := NewAuthService(mockRepo, &MockActivityLogRepoForAuth{})
 	req := requests.ChangePasswordRequest{
 		OldPassword: "admin123",
 		NewPassword: "newpass123!",

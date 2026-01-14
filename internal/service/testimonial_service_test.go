@@ -8,6 +8,8 @@ import (
 
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
+	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
+	"github.com/garuda-labs-1/pmii-be/internal/repository"
 )
 
 // MockTestimonialRepository adalah mock untuk TestimonialRepository
@@ -114,6 +116,22 @@ func (m *MockCloudinaryService) GetDownloadURL(folder string, filename string) s
 	return ""
 }
 
+// MockActivityLogRepositoryForTestimonial adalah mock untuk ActivityLogRepository
+type MockActivityLogRepositoryForTestimonial struct {
+	CreateFunc func(log *domain.ActivityLog) error
+}
+
+func (m *MockActivityLogRepositoryForTestimonial) Create(log *domain.ActivityLog) error {
+	if m.CreateFunc != nil {
+		return m.CreateFunc(log)
+	}
+	return nil
+}
+
+func (m *MockActivityLogRepositoryForTestimonial) GetActivityLogs(offset, limit int, filter repository.ActivityLogFilter) ([]responses.ActivityLogResponse, int64, error) {
+	return nil, 0, nil
+}
+
 // ==================== CREATE TESTS ====================
 
 // Test: Upload error harus return error
@@ -125,7 +143,7 @@ func TestCreate_ErrorUploadFailed(t *testing.T) {
 		},
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 	req := requests.CreateTestimonialRequest{Name: "Test", Content: "Content"}
 	mockFile := &multipart.FileHeader{Filename: "photo.jpg"}
 
@@ -156,7 +174,7 @@ func TestCreate_ErrorDatabaseWithRollback(t *testing.T) {
 		},
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 	req := requests.CreateTestimonialRequest{Name: "Test", Content: "Content"}
 	mockFile := &multipart.FileHeader{Filename: "photo.jpg"}
 
@@ -188,7 +206,7 @@ func TestCreate_ValidationEmptyOptionalFields(t *testing.T) {
 		GetImageURLFunc: func(folder string, filename string) string { return "" },
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 	req := requests.CreateTestimonialRequest{
 		Name:         "Test",
 		Content:      "Content",
@@ -216,7 +234,7 @@ func TestGetAll_ValidationDefaultPagination(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 	// Test dengan invalid values
 	_, _, _, _, err := service.GetAll(context.Background(), 0, -5, "")
@@ -234,7 +252,7 @@ func TestGetAll_ErrorDatabaseFailed(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 	_, _, _, _, err := service.GetAll(context.Background(), 1, 10, "")
 
@@ -265,7 +283,7 @@ func TestGetAll_LogicLastPageCalculation(t *testing.T) {
 		}
 
 		mockCloudinary := &MockCloudinaryService{}
-		service := NewTestimonialService(mockRepo, mockCloudinary)
+		service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 		_, _, lastPage, _, err := service.GetAll(context.Background(), 1, tt.limit, "")
 
@@ -289,7 +307,7 @@ func TestGetByID_ErrorNotFound(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 	_, err := service.GetByID(context.Background(), 999)
 
@@ -337,7 +355,7 @@ func TestUpdate_LogicDeleteOldPhotoAfterSuccess(t *testing.T) {
 		},
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 	req := requests.UpdateTestimonialRequest{Name: "Updated"}
 	mockFile := &multipart.FileHeader{Filename: "new.jpg"}
 
@@ -365,7 +383,7 @@ func TestUpdate_ErrorUploadFailed(t *testing.T) {
 		},
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 	req := requests.UpdateTestimonialRequest{Name: "Updated"}
 	mockFile := &multipart.FileHeader{Filename: "photo.jpg"}
 
@@ -406,7 +424,7 @@ func TestUpdate_ErrorDatabaseWithRollback(t *testing.T) {
 		},
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 	req := requests.UpdateTestimonialRequest{Name: "Updated"}
 	mockFile := &multipart.FileHeader{Filename: "new.jpg"}
 
@@ -432,7 +450,7 @@ func TestUpdate_ErrorNotFound(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 	_, err := service.Update(context.Background(), 999, requests.UpdateTestimonialRequest{}, nil)
 
@@ -467,7 +485,7 @@ func TestDelete_LogicDeleteDatabaseFirst(t *testing.T) {
 		},
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 	err := service.Delete(context.Background(), 1)
 
@@ -497,7 +515,7 @@ func TestDelete_ErrorDatabaseFailed(t *testing.T) {
 		},
 	}
 
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 	err := service.Delete(context.Background(), 1)
 
@@ -518,7 +536,7 @@ func TestDelete_ErrorNotFound(t *testing.T) {
 	}
 
 	mockCloudinary := &MockCloudinaryService{}
-	service := NewTestimonialService(mockRepo, mockCloudinary)
+	service := NewTestimonialService(mockRepo, mockCloudinary, &MockActivityLogRepositoryForTestimonial{})
 
 	err := service.Delete(context.Background(), 999)
 

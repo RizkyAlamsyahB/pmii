@@ -52,7 +52,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.Create(req)
+	res, err := h.svc.Create(GetContextWithRequestInfo(c), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menyimpan kategori"))
 		return
@@ -71,7 +71,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	res, err := h.svc.Update(id, req)
+	res, err := h.svc.Update(GetContextWithRequestInfo(c), id, req)
 	if err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse(404, "Kategori tidak ditemukan"))
 		return
@@ -84,7 +84,7 @@ func (h *CategoryHandler) UpdateCategory(c *gin.Context) {
 func (h *CategoryHandler) DeleteCategory(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.svc.Delete(id); err != nil {
+	if err := h.svc.Delete(GetContextWithRequestInfo(c), id); err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, "Gagal menghapus kategori. Pastikan tidak ada rilis berita yang menggunakan kategori ini."))
 		return
 	}

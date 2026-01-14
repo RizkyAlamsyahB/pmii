@@ -9,13 +9,14 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/pkg/utils"
 )
 
 // DocumentService interface untuk business logic document (admin)
 type DocumentService interface {
 	Create(ctx context.Context, req requests.CreateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
 	GetAll(ctx context.Context, page, limit int, fileType, search string) ([]responses.DocumentResponse, int, int, int64, error)
-	GetByID(ctx context.Context, id int) (*responses.DocumentResponse, error)
+	GetByID(ctx context.Context, id int) (*responses.DocumentDetailResponse, error)
 	Update(ctx context.Context, id int, req requests.UpdateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
 	Delete(ctx context.Context, id int) error
 	GetDocumentTypes() []responses.DocumentTypeInfo
@@ -24,13 +25,15 @@ type DocumentService interface {
 type documentService struct {
 	documentRepo      repository.DocumentRepository
 	cloudinaryService CloudinaryService
+	activityLogRepo   repository.ActivityLogRepository
 }
 
 // NewDocumentService constructor untuk DocumentService
-func NewDocumentService(documentRepo repository.DocumentRepository, cloudinaryService CloudinaryService) DocumentService {
+func NewDocumentService(documentRepo repository.DocumentRepository, cloudinaryService CloudinaryService, activityLogRepo repository.ActivityLogRepository) DocumentService {
 	return &documentService{
 		documentRepo:      documentRepo,
 		cloudinaryService: cloudinaryService,
+		activityLogRepo:   activityLogRepo,
 	}
 }
 
@@ -69,6 +72,13 @@ func (s *documentService) Create(ctx context.Context, req requests.CreateDocumen
 		_ = s.cloudinaryService.DeleteFile(ctx, folder, filename)
 		return nil, errors.New("gagal menyimpan dokumen")
 	}
+
+	// Log activity - Create Document
+	s.logActivity(ctx, domain.ActionCreate, domain.ModuleDokumen, "Membuat dokumen baru: "+document.Name, nil, map[string]any{
+		"id":        document.ID,
+		"name":      document.Name,
+		"file_type": string(document.FileType),
+	}, &document.ID)
 
 	return s.toResponseDTO(document), nil
 }
@@ -117,13 +127,13 @@ func (s *documentService) GetAll(ctx context.Context, page, limit int, fileType,
 }
 
 // GetByID mengambil document berdasarkan ID
-func (s *documentService) GetByID(ctx context.Context, id int) (*responses.DocumentResponse, error) {
+func (s *documentService) GetByID(ctx context.Context, id int) (*responses.DocumentDetailResponse, error) {
 	document, err := s.documentRepo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("dokumen tidak ditemukan")
 	}
 
-	return s.toResponseDTO(document), nil
+	return s.toDetailResponseDTO(document), nil
 }
 
 // Update mengupdate document dengan optional upload file baru
@@ -137,6 +147,14 @@ func (s *documentService) Update(ctx context.Context, id int, req requests.Updat
 	// Simpan info lama untuk rollback/cleanup
 	oldFileURI := document.FileURI
 	oldFileType := document.FileType
+
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":        document.ID,
+		"name":      document.Name,
+		"file_type": string(document.FileType),
+		"file_uri":  document.FileURI,
+	}
 
 	// Update file type if provided
 	if req.FileType != "" {
@@ -178,6 +196,14 @@ func (s *documentService) Update(ctx context.Context, id int, req requests.Updat
 		_ = s.cloudinaryService.DeleteFile(ctx, oldFileType.GetCloudinaryFolder(), oldFileURI)
 	}
 
+	// Log activity - Update Document
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleDokumen, "Mengupdate dokumen: "+document.Name, oldValues, map[string]any{
+		"id":        document.ID,
+		"name":      document.Name,
+		"file_type": string(document.FileType),
+		"file_uri":  document.FileURI,
+	}, &document.ID)
+
 	return s.toResponseDTO(document), nil
 }
 
@@ -188,6 +214,13 @@ func (s *documentService) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return errors.New("dokumen tidak ditemukan")
 	}
+
+	// Log activity sebelum delete
+	s.logActivity(ctx, domain.ActionDelete, domain.ModuleDokumen, "Menghapus dokumen: "+document.Name, map[string]any{
+		"id":        document.ID,
+		"name":      document.Name,
+		"file_type": string(document.FileType),
+	}, nil, &document.ID)
 
 	// Soft delete dari database
 	if err := s.documentRepo.Delete(id); err != nil {
@@ -223,10 +256,55 @@ func (s *documentService) toResponseDTO(d *domain.Document) *responses.DocumentR
 	return &responses.DocumentResponse{
 		ID:            d.ID,
 		Name:          d.Name,
+		FileTypeLabel: d.FileType.GetLabel(),
+		FileURL:       fileURL,
+	}
+}
+
+// toDetailResponseDTO converts domain.Document to responses.DocumentDetailResponse (for get by ID)
+func (s *documentService) toDetailResponseDTO(d *domain.Document) *responses.DocumentDetailResponse {
+	folder := d.FileType.GetCloudinaryFolder()
+	fileURL := s.cloudinaryService.GetDownloadURL(folder, d.FileURI)
+
+	return &responses.DocumentDetailResponse{
+		ID:            d.ID,
+		Name:          d.Name,
 		FileType:      string(d.FileType),
 		FileTypeLabel: d.FileType.GetLabel(),
 		FileURL:       fileURL,
-		CreatedAt:     d.CreatedAt,
-		UpdatedAt:     d.UpdatedAt,
 	}
+}
+
+// logActivity helper untuk mencatat activity log
+func (s *documentService) logActivity(ctx context.Context, actionType domain.ActivityActionType, module domain.ActivityModuleType, description string, oldValue, newValue map[string]any, targetID *int) {
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		return // Skip if no user in context
+	}
+
+	ipAddress := utils.GetIPAddress(ctx)
+	userAgent := utils.GetUserAgent(ctx)
+
+	var ipPtr, uaPtr *string
+	if ipAddress != "" {
+		ipPtr = &ipAddress
+	}
+	if userAgent != "" {
+		uaPtr = &userAgent
+	}
+
+	log := &domain.ActivityLog{
+		UserID:      userID,
+		ActionType:  actionType,
+		Module:      module,
+		Description: &description,
+		TargetID:    targetID,
+		OldValue:    oldValue,
+		NewValue:    newValue,
+		IPAddress:   ipPtr,
+		UserAgent:   uaPtr,
+	}
+
+	// Ignore error - logging should not affect main operation
+	_ = s.activityLogRepo.Create(log)
 }

@@ -43,7 +43,7 @@ func (h *SiteSettingHandler) Update(c *gin.Context) {
 	logoHeader, _ := c.FormFile("logo_header")
 	logoBig, _ := c.FormFile("logo_big")
 
-	result, err := h.siteSettingService.Update(c.Request.Context(), req, favicon, logoHeader, logoBig)
+	result, err := h.siteSettingService.Update(GetContextWithRequestInfo(c), req, favicon, logoHeader, logoBig)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
