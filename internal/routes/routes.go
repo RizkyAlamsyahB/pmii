@@ -45,7 +45,7 @@ func SetupRoutes(
 	newsHandler := handlers.NewNewsHandler(newsSvc)
 
 	postRepo := repository.NewPostRepository(config.DB)
-	postSvc := service.NewPostService(postRepo)
+	postSvc := service.NewPostService(postRepo, activityLogRepo)
 	postHandler := handlers.NewPostHandler(postSvc)
 
 	catRepo := repository.NewCategoryRepository()
