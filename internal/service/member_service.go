@@ -14,10 +14,10 @@ import (
 
 // MemberService interface untuk business logic member
 type MemberService interface {
-	Create(ctx context.Context, req requests.CreateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error)
+	Create(ctx context.Context, req requests.CreateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberDetailResponse, error)
 	GetAll(ctx context.Context, page, limit int, search string) ([]responses.MemberResponse, int, int, int64, error)
-	GetByID(ctx context.Context, id int) (*responses.MemberResponse, error)
-	Update(ctx context.Context, id int, req requests.UpdateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error)
+	GetByID(ctx context.Context, id int) (*responses.MemberDetailResponse, error)
+	Update(ctx context.Context, id int, req requests.UpdateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberDetailResponse, error)
 	Delete(ctx context.Context, id int) error
 }
 
@@ -37,7 +37,7 @@ func NewMemberService(memberRepo repository.MemberRepository, cloudinaryService 
 }
 
 // Create membuat member baru dengan upload foto ke Cloudinary
-func (s *memberService) Create(ctx context.Context, req requests.CreateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error) {
+func (s *memberService) Create(ctx context.Context, req requests.CreateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberDetailResponse, error) {
 	// Upload photo ke Cloudinary (jika ada)
 	var photoFilename *string
 	if photoFile != nil {
@@ -126,17 +126,17 @@ func (s *memberService) GetAll(ctx context.Context, page, limit int, search stri
 }
 
 // GetByID mengambil member berdasarkan ID
-func (s *memberService) GetByID(ctx context.Context, id int) (*responses.MemberResponse, error) {
+func (s *memberService) GetByID(ctx context.Context, id int) (*responses.MemberDetailResponse, error) {
 	member, err := s.memberRepo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("member tidak ditemukan")
 	}
 
-	return s.toResponseDTO(member), nil
+	return s.toDetailResponseDTO(member), nil
 }
 
 // Update mengupdate member dengan optional upload foto baru
-func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberResponse, error) {
+func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateMemberRequest, photoFile *multipart.FileHeader) (*responses.MemberDetailResponse, error) {
 	// Ambil member existing
 	member, err := s.memberRepo.FindByID(id)
 	if err != nil {
@@ -246,7 +246,7 @@ func (s *memberService) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-// toResponseDTO converts domain.Member to responses.MemberResponse
+// toResponseDTO converts domain.Member to responses.MemberResponse (for list)
 func (s *memberService) toResponseDTO(m *domain.Member) *responses.MemberResponse {
 	var imageURL string
 	if m.PhotoURI != nil {
@@ -257,11 +257,26 @@ func (s *memberService) toResponseDTO(m *domain.Member) *responses.MemberRespons
 		ID:          m.ID,
 		FullName:    m.FullName,
 		Position:    m.Position,
+		Photo:       imageURL,
+		SocialLinks: m.SocialLinks,
+	}
+}
+
+// toDetailResponseDTO converts domain.Member to responses.MemberDetailResponse (for detail/edit)
+func (s *memberService) toDetailResponseDTO(m *domain.Member) *responses.MemberDetailResponse {
+	var imageURL string
+	if m.PhotoURI != nil {
+		imageURL = s.cloudinaryService.GetImageURL("members", *m.PhotoURI)
+	}
+
+	return &responses.MemberDetailResponse{
+		ID:          m.ID,
+		FullName:    m.FullName,
+		Position:    m.Position,
 		Department:  string(m.Department),
 		Photo:       imageURL,
 		SocialLinks: m.SocialLinks,
 		IsActive:    m.IsActive,
-		CreatedAt:   m.CreatedAt,
 	}
 }
 

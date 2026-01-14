@@ -26,6 +26,7 @@ func SetupRoutes(
 	publicHomeHandler *handlers.PublicHomeHandler,
 	documentHandler *handlers.DocumentHandler,
 	publicDocumentHandler *handlers.PublicDocumentHandler,
+	publicSiteSettingHandler *handlers.PublicSiteSettingHandler,
 	allowedOrigins string,
 	environment string,
 ) {
@@ -112,6 +113,9 @@ func SetupRoutes(
 		v1.GET("/home/cta", publicHomeHandler.GetCtaSection)                 // GET /v1/home/cta
 		v1.GET("/documents", publicDocumentHandler.GetAllPublic)             // GET /v1/documents
 		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic)    // GET /v1/documents/:type
+
+		// Public Routes - Site Settings (No Authentication Required)
+		v1.GET("/settings", publicSiteSettingHandler.Get) // GET /v1/settings
 
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")

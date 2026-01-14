@@ -16,7 +16,7 @@ import (
 type DocumentService interface {
 	Create(ctx context.Context, req requests.CreateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
 	GetAll(ctx context.Context, page, limit int, fileType, search string) ([]responses.DocumentResponse, int, int, int64, error)
-	GetByID(ctx context.Context, id int) (*responses.DocumentResponse, error)
+	GetByID(ctx context.Context, id int) (*responses.DocumentDetailResponse, error)
 	Update(ctx context.Context, id int, req requests.UpdateDocumentRequest, file *multipart.FileHeader) (*responses.DocumentResponse, error)
 	Delete(ctx context.Context, id int) error
 	GetDocumentTypes() []responses.DocumentTypeInfo
@@ -127,13 +127,13 @@ func (s *documentService) GetAll(ctx context.Context, page, limit int, fileType,
 }
 
 // GetByID mengambil document berdasarkan ID
-func (s *documentService) GetByID(ctx context.Context, id int) (*responses.DocumentResponse, error) {
+func (s *documentService) GetByID(ctx context.Context, id int) (*responses.DocumentDetailResponse, error) {
 	document, err := s.documentRepo.FindByID(id)
 	if err != nil {
 		return nil, errors.New("dokumen tidak ditemukan")
 	}
 
-	return s.toResponseDTO(document), nil
+	return s.toDetailResponseDTO(document), nil
 }
 
 // Update mengupdate document dengan optional upload file baru
@@ -256,11 +256,22 @@ func (s *documentService) toResponseDTO(d *domain.Document) *responses.DocumentR
 	return &responses.DocumentResponse{
 		ID:            d.ID,
 		Name:          d.Name,
+		FileTypeLabel: d.FileType.GetLabel(),
+		FileURL:       fileURL,
+	}
+}
+
+// toDetailResponseDTO converts domain.Document to responses.DocumentDetailResponse (for get by ID)
+func (s *documentService) toDetailResponseDTO(d *domain.Document) *responses.DocumentDetailResponse {
+	folder := d.FileType.GetCloudinaryFolder()
+	fileURL := s.cloudinaryService.GetDownloadURL(folder, d.FileURI)
+
+	return &responses.DocumentDetailResponse{
+		ID:            d.ID,
+		Name:          d.Name,
 		FileType:      string(d.FileType),
 		FileTypeLabel: d.FileType.GetLabel(),
 		FileURL:       fileURL,
-		CreatedAt:     d.CreatedAt,
-		UpdatedAt:     d.UpdatedAt,
 	}
 }
 

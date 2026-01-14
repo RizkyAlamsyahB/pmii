@@ -1,23 +1,27 @@
 package responses
 
-import "time"
-
-// DocumentResponse adalah DTO untuk response document (admin)
+// DocumentResponse adalah DTO untuk response document list (admin)
 type DocumentResponse struct {
-	ID            int       `json:"id"`
-	Name          string    `json:"name"`
-	FileType      string    `json:"fileType"`
-	FileTypeLabel string    `json:"fileTypeLabel"`
-	FileURL       string    `json:"fileUrl"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	ID            int    `json:"id"`
+	Name          string `json:"name"`
+	FileTypeLabel string `json:"fileTypeLabel"`
+	FileURL       string `json:"fileUrl"`
+}
+
+// DocumentDetailResponse adalah DTO untuk response document detail (admin - get by ID)
+type DocumentDetailResponse struct {
+	ID            int    `json:"id"`
+	Name          string `json:"name"`
+	FileType      string `json:"fileType"`
+	FileTypeLabel string `json:"fileTypeLabel"`
+	FileURL       string `json:"fileUrl"`
 }
 
 // PublicDocumentResponse adalah response untuk public API
 type PublicDocumentResponse struct {
-	ID      int    `json:"id"`
-	Name    string `json:"name"`
-	FileURL string `json:"fileUrl"`
+	Name          string `json:"name"`
+	FileTypeLabel string `json:"fileTypeLabel"`
+	FileURL       string `json:"fileUrl"`
 }
 
 // DocumentTypeInfo informasi tipe dokumen
