@@ -19,6 +19,9 @@ type TestimonialSeedData struct {
 func (s *Seeder) SeedTestimonials() error {
 	logSeederStart("Testimonials")
 
+	// Clear existing testimonials and reset sequence for clean re-seeding
+	s.db.Exec("TRUNCATE TABLE testimonials RESTART IDENTITY CASCADE")
+
 	testimonials := getTestimonialsData()
 	successCount := 0
 
