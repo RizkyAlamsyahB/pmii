@@ -9,6 +9,7 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/pkg/utils"
 )
 
 // MemberService interface untuk business logic member
@@ -23,13 +24,15 @@ type MemberService interface {
 type memberService struct {
 	memberRepo        repository.MemberRepository
 	cloudinaryService CloudinaryService
+	activityLogRepo   repository.ActivityLogRepository
 }
 
 // NewMemberService constructor untuk MemberService
-func NewMemberService(memberRepo repository.MemberRepository, cloudinaryService CloudinaryService) MemberService {
+func NewMemberService(memberRepo repository.MemberRepository, cloudinaryService CloudinaryService, activityLogRepo repository.ActivityLogRepository) MemberService {
 	return &memberService{
 		memberRepo:        memberRepo,
 		cloudinaryService: cloudinaryService,
+		activityLogRepo:   activityLogRepo,
 	}
 }
 
@@ -65,7 +68,21 @@ func (s *memberService) Create(ctx context.Context, req requests.CreateMemberReq
 	}
 
 	// Convert to response DTO
-	return s.toDetailResponseDTO(member), nil
+	resp := s.toResponseDTO(member)
+
+	// Log activity - Create Member
+	s.logActivity(ctx, domain.ActionCreate, domain.ModuleMembers, "Membuat member baru: "+member.FullName, nil, map[string]any{
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
+		"created_at":   member.CreatedAt,
+	}, &member.ID)
+
+	return resp, nil
 }
 
 // GetAll mengambil semua member dengan pagination dan search
@@ -129,6 +146,17 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 	// Simpan foto lama untuk rollback
 	oldPhotoURI := member.PhotoURI
 
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
+	}
+
 	// Upload foto baru ke Cloudinary (jika ada)
 	var newPhotoFilename *string
 	if photoFile != nil {
@@ -171,7 +199,18 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 		_ = s.cloudinaryService.DeleteImage(ctx, "members", *oldPhotoURI)
 	}
 
-	return s.toDetailResponseDTO(member), nil
+	// Log activity - Update Member
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleMembers, "Mengupdate member: "+member.FullName, oldValues, map[string]any{
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
+	}, &member.ID)
+
+	return s.toResponseDTO(member), nil
 }
 
 // Delete menghapus member dan foto dari Cloudinary
@@ -181,6 +220,18 @@ func (s *memberService) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return errors.New("member tidak ditemukan")
 	}
+
+	// Log activity sebelum delete
+	s.logActivity(ctx, domain.ActionDelete, domain.ModuleMembers, "Menghapus member: "+member.FullName, map[string]any{
+		"id":           member.ID,
+		"full_name":    member.FullName,
+		"position":     member.Position,
+		"department":   string(member.Department),
+		"photo_uri":    member.PhotoURI,
+		"social_links": member.SocialLinks,
+		"is_active":    member.IsActive,
+		"created_at":   member.CreatedAt,
+	}, nil, &member.ID)
 
 	// Hapus dari database
 	if err := s.memberRepo.Delete(id); err != nil {
@@ -227,4 +278,38 @@ func (s *memberService) toDetailResponseDTO(m *domain.Member) *responses.MemberD
 		SocialLinks: m.SocialLinks,
 		IsActive:    m.IsActive,
 	}
+}
+
+// logActivity helper untuk mencatat activity log
+func (s *memberService) logActivity(ctx context.Context, actionType domain.ActivityActionType, module domain.ActivityModuleType, description string, oldValue, newValue map[string]any, targetID *int) {
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		return // Skip if no user in context
+	}
+
+	ipAddress := utils.GetIPAddress(ctx)
+	userAgent := utils.GetUserAgent(ctx)
+
+	var ipPtr, uaPtr *string
+	if ipAddress != "" {
+		ipPtr = &ipAddress
+	}
+	if userAgent != "" {
+		uaPtr = &userAgent
+	}
+
+	log := &domain.ActivityLog{
+		UserID:      userID,
+		ActionType:  actionType,
+		Module:      module,
+		Description: &description,
+		TargetID:    targetID,
+		OldValue:    oldValue,
+		NewValue:    newValue,
+		IPAddress:   ipPtr,
+		UserAgent:   uaPtr,
+	}
+
+	// Ignore error - logging should not affect main operation
+	_ = s.activityLogRepo.Create(log)
 }

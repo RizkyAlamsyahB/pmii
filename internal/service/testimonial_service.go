@@ -9,6 +9,7 @@ import (
 	"github.com/garuda-labs-1/pmii-be/internal/dto/requests"
 	"github.com/garuda-labs-1/pmii-be/internal/dto/responses"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
+	"github.com/garuda-labs-1/pmii-be/pkg/utils"
 )
 
 // CloudinaryService interface untuk operasi cloudinary
@@ -36,13 +37,15 @@ type TestimonialService interface {
 type testimonialService struct {
 	testimonialRepo   repository.TestimonialRepository
 	cloudinaryService CloudinaryService
+	activityLogRepo   repository.ActivityLogRepository
 }
 
 // NewTestimonialService constructor untuk TestimonialService
-func NewTestimonialService(testimonialRepo repository.TestimonialRepository, cloudinaryService CloudinaryService) TestimonialService {
+func NewTestimonialService(testimonialRepo repository.TestimonialRepository, cloudinaryService CloudinaryService, activityLogRepo repository.ActivityLogRepository) TestimonialService {
 	return &testimonialService{
 		testimonialRepo:   testimonialRepo,
 		cloudinaryService: cloudinaryService,
+		activityLogRepo:   activityLogRepo,
 	}
 }
 
@@ -88,7 +91,15 @@ func (s *testimonialService) Create(ctx context.Context, req requests.CreateTest
 	}
 
 	// Convert to response DTO
-	return s.toDetailResponseDTO(testimonial), nil
+	resp := s.toResponseDTO(testimonial)
+
+	// Log activity - Create Testimonial
+	s.logActivity(ctx, domain.ActionCreate, domain.ModuleTestimoni, "Membuat testimonial baru: "+testimonial.Name, nil, map[string]any{
+		"id":   testimonial.ID,
+		"name": testimonial.Name,
+	}, &testimonial.ID)
+
+	return resp, nil
 }
 
 // GetAll mengambil semua testimonial dengan pagination dan search
@@ -152,6 +163,17 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 	// Simpan foto lama untuk rollback
 	oldPhotoURI := testimonial.PhotoURI
 
+	// Store old values for audit log
+	oldValues := map[string]any{
+		"id":           testimonial.ID,
+		"name":         testimonial.Name,
+		"organization": testimonial.Organization,
+		"position":     testimonial.Position,
+		"content":      testimonial.Content,
+		"photo_uri":    testimonial.PhotoURI,
+		"is_active":    testimonial.IsActive,
+	}
+
 	// Upload foto baru ke Cloudinary (jika ada)
 	var newPhotoFilename *string
 	if photoFile != nil {
@@ -194,7 +216,18 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 		_ = s.cloudinaryService.DeleteImage(ctx, "testimonials", *oldPhotoURI)
 	}
 
-	return s.toDetailResponseDTO(testimonial), nil
+	// Log activity - Update Testimonial
+	s.logActivity(ctx, domain.ActionUpdate, domain.ModuleTestimoni, "Mengupdate testimonial: "+testimonial.Name, oldValues, map[string]any{
+		"id":           testimonial.ID,
+		"name":         testimonial.Name,
+		"organization": testimonial.Organization,
+		"position":     testimonial.Position,
+		"content":      testimonial.Content,
+		"photo_uri":    testimonial.PhotoURI,
+		"is_active":    testimonial.IsActive,
+	}, &testimonial.ID)
+
+	return s.toResponseDTO(testimonial), nil
 }
 
 // Delete menghapus testimonial dan foto dari Cloudinary
@@ -204,6 +237,12 @@ func (s *testimonialService) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return errors.New("testimonial tidak ditemukan")
 	}
+
+	// Log activity sebelum delete
+	s.logActivity(ctx, domain.ActionDelete, domain.ModuleTestimoni, "Menghapus testimonial: "+testimonial.Name, map[string]any{
+		"id":   testimonial.ID,
+		"name": testimonial.Name,
+	}, nil, &testimonial.ID)
 
 	// Hapus dari database
 	if err := s.testimonialRepo.Delete(id); err != nil {
@@ -250,4 +289,38 @@ func (s *testimonialService) toDetailResponseDTO(t *domain.Testimonial) *respons
 		ImageUrl:     imageURL,
 		IsActive:     t.IsActive,
 	}
+}
+
+// logActivity helper untuk mencatat activity log
+func (s *testimonialService) logActivity(ctx context.Context, actionType domain.ActivityActionType, module domain.ActivityModuleType, description string, oldValue, newValue map[string]any, targetID *int) {
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		return // Skip if no user in context
+	}
+
+	ipAddress := utils.GetIPAddress(ctx)
+	userAgent := utils.GetUserAgent(ctx)
+
+	var ipPtr, uaPtr *string
+	if ipAddress != "" {
+		ipPtr = &ipAddress
+	}
+	if userAgent != "" {
+		uaPtr = &userAgent
+	}
+
+	log := &domain.ActivityLog{
+		UserID:      userID,
+		ActionType:  actionType,
+		Module:      module,
+		Description: &description,
+		TargetID:    targetID,
+		OldValue:    oldValue,
+		NewValue:    newValue,
+		IPAddress:   ipPtr,
+		UserAgent:   uaPtr,
+	}
+
+	// Ignore error - logging should not affect main operation
+	_ = s.activityLogRepo.Create(log)
 }
