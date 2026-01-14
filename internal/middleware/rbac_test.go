@@ -58,7 +58,7 @@ func TestRequireRole_InvalidRoleBlocked(t *testing.T) {
 
 	// Handler yang seharusnya TIDAK dipanggil
 	handlerCalled := false
-	testHandler := func(c *gin.Context) {
+	testHandler := func(_ *gin.Context) {
 		handlerCalled = true
 	}
 
@@ -94,7 +94,7 @@ func TestRequireRole_NoAuthContext(t *testing.T) {
 
 	// Handler yang seharusnya TIDAK dipanggil
 	handlerCalled := false
-	testHandler := func(c *gin.Context) {
+	testHandler := func(_ *gin.Context) {
 		handlerCalled = true
 	}
 
@@ -131,7 +131,7 @@ func TestRequireRole_WrongRoleType(t *testing.T) {
 
 	// Handler yang seharusnya TIDAK dipanggil
 	handlerCalled := false
-	testHandler := func(c *gin.Context) {
+	testHandler := func(_ *gin.Context) {
 		handlerCalled = true
 	}
 
@@ -242,7 +242,7 @@ func TestRequireAnyRole_UnauthorizedRole(t *testing.T) {
 
 	// Handler
 	handlerCalled := false
-	testHandler := func(c *gin.Context) {
+	testHandler := func(_ *gin.Context) {
 		handlerCalled = true
 	}
 

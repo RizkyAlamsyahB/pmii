@@ -254,18 +254,20 @@ func TestGetDashboard_AdminWithActivityLogs(t *testing.T) {
 		GetRecentActivityLogsFunc: func(limit int) ([]repository.ActivityLogStats, error) {
 			return []repository.ActivityLogStats{
 				{
-					ID:         1,
-					UserName:   "Admin User",
-					ActionType: "CREATE",
-					Module:     "posts",
-					CreatedAt:  time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC),
+					ID:          1,
+					UserName:    "Courtney Henry",
+					ActionType:  "CREATE",
+					Module:      "posts",
+					Description: "mengunggah berita baru: \"Peran Mahasiswa dalam Transformasi Sosial\"",
+					CreatedAt:   time.Date(2025, 12, 3, 10, 24, 0, 0, time.UTC),
 				},
 				{
-					ID:         2,
-					UserName:   "Admin User",
-					ActionType: "UPDATE",
-					Module:     "categories",
-					CreatedAt:  time.Date(2025, 6, 15, 9, 0, 0, 0, time.UTC),
+					ID:          2,
+					UserName:    "Albert Flores",
+					ActionType:  "UPDATE",
+					Module:      "about",
+					Description: "memperbarui konten halaman About PMII.",
+					CreatedAt:   time.Date(2025, 12, 3, 9, 11, 0, 0, time.UTC),
 				},
 			}, nil
 		},
@@ -287,8 +289,13 @@ func TestGetDashboard_AdminWithActivityLogs(t *testing.T) {
 		t.Errorf("Expected 2 activity logs for admin, got %d", len(result.ActivityLogs))
 	}
 
-	if result.ActivityLogs[0].ActionType != "CREATE" {
-		t.Errorf("Expected first activity action 'CREATE', got '%s'", result.ActivityLogs[0].ActionType)
+	// Check new format: name, title, time
+	if result.ActivityLogs[0].Name != "Courtney Henry" {
+		t.Errorf("Expected first activity name 'Courtney Henry', got '%s'", result.ActivityLogs[0].Name)
+	}
+
+	if result.ActivityLogs[0].Time != "10:24 • 03 Des 2025" {
+		t.Errorf("Expected first activity time '10:24 • 03 Des 2025', got '%s'", result.ActivityLogs[0].Time)
 	}
 }
 
