@@ -27,18 +27,17 @@ type CategoryShortResponse struct {
 
 // PostResponse adalah bentuk JSON yang akan dikirim ke client
 type PostResponse struct {
-	ID          int       `json:"id"`
-	Title       string    `json:"title"`
-	Slug        string    `json:"slug"`
-	Excerpt     string    `json:"excerpt"`
-	Content     string    `json:"content,omitempty"`
-	ImageUrl    string    `json:"imageUrl"`
-	PublishedAt time.Time `json:"publishedAt"`
-	// Field Views dihapus karena tidak ada di domain/DB
-
-	CategoryId CategoryShortResponse `json:"category"`
-	AuthorId   int                   `json:"authorId"`
-	Tags       string                `json:"tags"`
+	ID          int                   `json:"id"`
+	Title       string                `json:"title"`
+	Slug        string                `json:"slug"`
+	Excerpt     string                `json:"excerpt"`
+	Content     string                `json:"content,omitempty"`
+	ImageUrl    string                `json:"imageUrl"`
+	PublishedAt time.Time             `json:"publishedAt"`
+	Views       int                   `json:"views"`
+	CategoryId  CategoryShortResponse `json:"category"`
+	AuthorId    int                   `json:"authorId"`
+	Tags        string                `json:"tags"`
 	// Jika ingin menampilkan data user dan kategori lengkap, bisa
 	// mengganti CategoryId dan AuthorId dengan struct CategoryResponse dan UserResponse
 }
@@ -95,10 +94,10 @@ func FromDomainToPostResponse(post domain.Post) PostResponse {
 		Content:     post.Content,
 		ImageUrl:    imageUrl,
 		PublishedAt: publishedAt,
-		// Views sudah dihapus dari struct
-		CategoryId: categoryData,
-		AuthorId:   post.UserID,
-		Tags:       tagsString,
+		Views:       post.ViewsCount,
+		CategoryId:  categoryData,
+		AuthorId:    post.UserID,
+		Tags:        tagsString,
 	}
 }
 

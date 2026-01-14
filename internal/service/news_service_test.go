@@ -25,6 +25,7 @@ func TestFetchNewsDetail_EmptySlug(t *testing.T) {
 
 func TestFetchByCategory(t *testing.T) {
 	// Pengujian skenario jika category slug diberikan
+	// categorySlug := "opini"
 	page := 1
 	limit := 10
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/garuda-labs-1/pmii-be/config"
+	// "github.com/garuda-labs-1/pmii-be/internal/domain"
 	"github.com/garuda-labs-1/pmii-be/internal/handlers"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
 	"github.com/garuda-labs-1/pmii-be/internal/routes"
@@ -25,11 +26,11 @@ func main() {
 	}
 
 	config.InitDB(cfg)
-	// Ini akan membuat tabel 'posts' di database berdasarkan struct Post di handler
 	// config.DB.AutoMigrate(
 	// 	&domain.Category{},
 	// 	&domain.Tag{},
 	// 	&domain.Post{},
+	// 	&domain.PostView{},
 	// )
 
 	logger.Info.Printf("Environment: %s", cfg.Server.Environment)

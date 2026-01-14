@@ -1,8 +1,12 @@
 package repository
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/garuda-labs-1/pmii-be/config"
 	"github.com/garuda-labs-1/pmii-be/internal/domain"
+	"gorm.io/gorm"
 )
 
 type PostRepository interface {
@@ -13,24 +17,38 @@ type PostRepository interface {
 	Update(post *domain.Post) error
 	Delete(post *domain.Post, unscoped bool) error
 	GetTagBySlug(slug string, name string) (domain.Tag, error)
+	HasViewed(postID int, ip string, since time.Time) (bool, error)
+	AddView(view *domain.PostView) error
 }
 
-type postRepository struct{}
+type postRepository struct {
+	db *gorm.DB
+}
 
-func NewPostRepository() PostRepository {
-	return &postRepository{}
+func NewPostRepository(db *gorm.DB) PostRepository {
+	return &postRepository{db: db}
 }
 
 func (r *postRepository) FindAll(offset, limit int, search string) ([]domain.Post, int64, error) {
 	var posts []domain.Post
 	var total int64
-	query := config.DB.Model(&domain.Post{}).Preload("Tags").Preload("Category")
+
+	// Tambahkan subquery Select ini agar setiap item di list memiliki data views_count
+	query := r.db.Model(&domain.Post{}).
+		Select("posts.*, (SELECT COUNT(*) FROM post_views WHERE post_views.post_id = posts.id) as views_count").
+		Preload("Tags").
+		Preload("Category")
+
 	if search != "" {
 		searchKeyword := "%" + search + "%"
 		query = query.Where("title ILIKE ? OR content ILIKE ?", searchKeyword, searchKeyword)
 	}
+
 	query.Count(&total)
+
+	// Pastikan urutan query tetap benar
 	err := query.Limit(limit).Offset(offset).Order("published_at DESC").Find(&posts).Error
+
 	return posts, total, err
 }
 
@@ -42,8 +60,22 @@ func (r *postRepository) FindByID(id int) (domain.Post, error) {
 
 func (r *postRepository) FindBySlugOrID(identifier string) (domain.Post, error) {
 	var post domain.Post
-	query := config.DB.Preload("Category").Preload("Tags")
-	err := query.Where("id = ? OR slug = ?", identifier, identifier).First(&post).Error
+
+	// Siapkan base query dengan subquery views_count
+	query := r.db.Preload("Category").Preload("Tags").
+		Select("posts.*, (SELECT COUNT(*) FROM post_views WHERE post_views.post_id = posts.id) as views_count")
+
+	// Cek apakah identifier adalah integer (ID)
+	id, err := strconv.Atoi(identifier)
+
+	if err == nil {
+		// Jika sukses dikonversi ke angka, cari berdasarkan ID
+		err = query.Where("id = ?", id).First(&post).Error
+	} else {
+		// Jika gagal (berarti itu slug string), cari berdasarkan Slug
+		err = query.Where("slug = ?", identifier).First(&post).Error
+	}
+
 	return post, err
 }
 
@@ -67,4 +99,16 @@ func (r *postRepository) GetTagBySlug(slug string, name string) (domain.Tag, err
 	var tag domain.Tag
 	err := config.DB.Where(domain.Tag{Slug: slug}).Attrs(domain.Tag{Name: name}).FirstOrCreate(&tag).Error
 	return tag, err
+}
+
+func (r *postRepository) HasViewed(postID int, ip string, since time.Time) (bool, error) {
+	var count int64
+	err := r.db.Model(&domain.PostView{}).
+		Where("post_id = ? AND ip_address = ? AND viewed_at > ?", postID, ip, since).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (r *postRepository) AddView(view *domain.PostView) error {
+	return r.db.Create(view).Error
 }

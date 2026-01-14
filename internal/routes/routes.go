@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 
+	"github.com/garuda-labs-1/pmii-be/config"
 	"github.com/garuda-labs-1/pmii-be/internal/handlers"
 	"github.com/garuda-labs-1/pmii-be/internal/middleware"
 	"github.com/garuda-labs-1/pmii-be/internal/repository"
@@ -38,12 +39,12 @@ func SetupRoutes(
 	activityLogHandler := handlers.NewActivityLogHandler(activityLogSvc)
 
 	// Inisialisasi Dependency untuk News Publik
-	newsRepo := repository.NewNewsRepository()
+	newsRepo := repository.NewNewsRepository(config.DB)
 	newsSvc := service.NewNewsService(newsRepo)
 	newsHandler := handlers.NewNewsHandler(newsSvc)
-	// --- Inisialisasi Modul Post (Clean Architecture) ---
-	postRepo := repository.NewPostRepository()
-	postSvc := service.NewPostService(postRepo, activityLogRepo)
+
+	postRepo := repository.NewPostRepository(config.DB)
+	postSvc := service.NewPostService(postRepo)
 	postHandler := handlers.NewPostHandler(postSvc)
 
 	catRepo := repository.NewCategoryRepository()
@@ -96,7 +97,7 @@ func SetupRoutes(
 		}
 
 		v1.GET("/news", newsHandler.GetNewsList)                   // GET /v1/news
-		v1.GET("/news/:slug", newsHandler.GetNewsDetail)           // GET /v1/news/:slug
+		v1.GET("/news/:slug", postHandler.GetPost)                 // GET /v1/news/:slug
 		v1.GET("/categories/:slug", newsHandler.GetNewsByCategory) // GET /v1/categories/:slug
 
 		// Public Routes - About Page (No Authentication Required)

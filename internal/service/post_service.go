@@ -15,10 +15,10 @@ import (
 
 type PostService interface {
 	GetAllPosts(page, limit int, search string) ([]responses.PostResponse, int, int64, error)
-	CreatePost(ctx context.Context, req requests.PostCreateRequest) (responses.PostResponse, error)
-	GetPostDetail(id string) (responses.PostResponse, error)
-	UpdatePost(ctx context.Context, id string, req requests.PostUpdateRequest) (responses.PostResponse, error)
-	DeletePost(ctx context.Context, id string) error
+	CreatePost(req requests.PostCreateRequest) (responses.PostResponse, error)
+	UpdatePost(id string, req requests.PostUpdateRequest) (responses.PostResponse, error)
+	DeletePost(id string) error
+	GetPostDetail(id string, ip, ua string) (responses.PostResponse, error)
 }
 
 type postService struct {
@@ -109,11 +109,35 @@ func (s *postService) CreatePost(ctx context.Context, req requests.PostCreateReq
 }
 
 // 3. GET DETAIL POST
-func (s *postService) GetPostDetail(id string) (responses.PostResponse, error) {
+func (s *postService) GetPostDetail(id string, ip, ua string) (responses.PostResponse, error) {
+	// 1. Ambil detail berita
 	post, err := s.repo.FindBySlugOrID(id)
 	if err != nil {
 		return responses.PostResponse{}, err
 	}
+
+	// 2. Logika Anti-Spam: Cek apakah IP sudah melihat dalam 24 jam terakhir
+	since := time.Now().Add(-24 * time.Hour)
+	hasViewed, _ := s.repo.HasViewed(post.ID, ip, since)
+
+	if !hasViewed {
+		newView := domain.PostView{
+			PostID:    post.ID,
+			IPAddress: &ip,
+			UserAgent: &ua,
+			ViewedAt:  time.Now(),
+		}
+
+		// Simpan view baru ke database
+		if errAdd := s.repo.AddView(&newView); errAdd == nil {
+			// Ambil ulang data agar ViewsCount terbaru langsung dikirim ke user
+			updatedPost, errReload := s.repo.FindBySlugOrID(id)
+			if errReload == nil {
+				post = updatedPost
+			}
+		}
+	}
+
 	return responses.FromDomainToPostResponse(post), nil
 }
 
