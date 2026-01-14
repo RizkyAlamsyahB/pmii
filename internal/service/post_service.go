@@ -15,9 +15,9 @@ import (
 
 type PostService interface {
 	GetAllPosts(page, limit int, search string) ([]responses.PostResponse, int, int64, error)
-	CreatePost(req requests.PostCreateRequest) (responses.PostResponse, error)
-	UpdatePost(id string, req requests.PostUpdateRequest) (responses.PostResponse, error)
-	DeletePost(id string) error
+	CreatePost(ctx context.Context, req requests.PostCreateRequest) (responses.PostResponse, error)
+	UpdatePost(ctx context.Context, id string, req requests.PostUpdateRequest) (responses.PostResponse, error)
+	DeletePost(ctx context.Context, id string) error
 	GetPostDetail(id string, ip, ua string) (responses.PostResponse, error)
 }
 
