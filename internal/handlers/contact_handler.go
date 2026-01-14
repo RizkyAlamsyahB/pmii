@@ -34,12 +34,18 @@ func (h *ContactHandler) Get(c *gin.Context) {
 func (h *ContactHandler) Update(c *gin.Context) {
 	var req requests.UpdateContactRequest
 
-	// Try binding JSON first, then form
-	if err := c.ShouldBindJSON(&req); err != nil {
-		if err := c.ShouldBind(&req); err != nil {
-			c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Data tidak valid"))
-			return
-		}
+	// Bind berdasarkan Content-Type
+	contentType := c.ContentType()
+	var err error
+	if contentType == "application/json" {
+		err = c.ShouldBindJSON(&req)
+	} else {
+		err = c.ShouldBind(&req)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Data tidak valid"))
+		return
 	}
 
 	result, err := h.contactService.Update(GetContextWithRequestInfo(c), req)

@@ -26,6 +26,7 @@ func SetupRoutes(
 	publicHomeHandler *handlers.PublicHomeHandler,
 	documentHandler *handlers.DocumentHandler,
 	publicDocumentHandler *handlers.PublicDocumentHandler,
+	dashboardHandler *handlers.DashboardHandler,
 	publicSiteSettingHandler *handlers.PublicSiteSettingHandler,
 	allowedOrigins string,
 	environment string,
@@ -114,15 +115,13 @@ func SetupRoutes(
 		v1.GET("/documents", publicDocumentHandler.GetAllPublic)             // GET /v1/documents
 		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic)    // GET /v1/documents/:type
 
-		// Public Routes - Site Settings (No Authentication Required)
-		v1.GET("/settings", publicSiteSettingHandler.Get) // GET /v1/settings
-
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
 		adminRoutes.Use(middleware.AuthMiddleware(), middleware.RequireRole("1"))
 		{
-			// GET /v1/admin/dashboard - Admin dashboard
-			adminRoutes.GET("/dashboard", adminHandler.GetDashboard)
+			// Dashboard Routes - Admin with Activity Logs
+			adminRoutes.GET("/dashboard", dashboardHandler.GetDashboard)                // GET /v1/admin/dashboard?year=2026&month=1
+			adminRoutes.GET("/dashboard/periods", dashboardHandler.GetAvailablePeriods) // GET /v1/admin/dashboard/periods
 
 			// Testimonial Routes - Admin Only
 			adminRoutes.POST("/testimonials", testimonialHandler.Create)       // POST /v1/admin/testimonials
@@ -174,6 +173,10 @@ func SetupRoutes(
 		{
 			// GET /v1/users/me - Get own profile
 			userRoutes.GET("/me", userHandler.GetMyProfile)
+
+			// Dashboard Routes - Author without Activity Logs
+			userRoutes.GET("/dashboard", dashboardHandler.GetDashboard)                // GET /v1/users/dashboard?year=2026&month=1
+			userRoutes.GET("/dashboard/periods", dashboardHandler.GetAvailablePeriods) // GET /v1/users/dashboard/periods
 		}
 
 		// Public Posts Routes - Untuk pengunjung melihat postingan

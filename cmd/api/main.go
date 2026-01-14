@@ -67,6 +67,11 @@ func main() {
 		logger.Error.Fatalf("Failed to seed default users: %v", err)
 	}
 
+	// 4d. Seed Dashboard Data (Auto-run on startup - hanya jika belum ada data)
+	if err := database.SeedDashboardData(db); err != nil {
+		logger.Error.Fatalf("Failed to seed dashboard data: %v", err)
+	}
+
 	// 5. Initialize Cloudinary Service
 	cloudinaryService, err := cloudinary.NewService(cfg.Cloudinary.URL)
 	if err != nil {
@@ -83,6 +88,7 @@ func main() {
 	contactRepo := repository.NewContactRepository(db)
 	homeRepo := repository.NewHomeRepository(db)
 	documentRepo := repository.NewDocumentRepository(db)
+	dashboardRepo := repository.NewDashboardRepository(db)
 	activityLogRepo := repository.NewActivityLogRepository()
 
 	// 7. Initialize Services (Business Logic Layer)
@@ -97,6 +103,7 @@ func main() {
 	publicHomeService := service.NewPublicHomeService(homeRepo, testimonialRepo, cloudinaryService)
 	documentService := service.NewDocumentService(documentRepo, cloudinaryService, activityLogRepo)
 	publicDocumentService := service.NewPublicDocumentService(documentRepo, cloudinaryService)
+	dashboardService := service.NewDashboardService(dashboardRepo)
 	publicSiteSettingService := service.NewPublicSiteSettingService(siteSettingRepo, cloudinaryService)
 
 	// 8. Initialize Handlers (Transport Layer)
@@ -112,6 +119,7 @@ func main() {
 	publicHomeHandler := handlers.NewPublicHomeHandler(publicHomeService)
 	documentHandler := handlers.NewDocumentHandler(documentService)
 	publicDocumentHandler := handlers.NewPublicDocumentHandler(publicDocumentService)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 	publicSiteSettingHandler := handlers.NewPublicSiteSettingHandler(publicSiteSettingService)
 
 	// 9. Setup Gin Router
@@ -124,7 +132,8 @@ func main() {
 	r.MaxMultipartMemory = 20 << 20 // 20 MB
 
 	// 10. Setup Routes (dari internal/routes)
-	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, publicSiteSettingHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, dashboardHandler, publicSiteSettingHandler, cfg.Server.AllowedOrigins, cfg.Server.Environment)
+	
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port
