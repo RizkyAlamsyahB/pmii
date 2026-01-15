@@ -68,7 +68,7 @@ func (s *memberService) Create(ctx context.Context, req requests.CreateMemberReq
 	}
 
 	// Convert to response DTO
-	resp := s.toResponseDTO(member)
+	resp := s.toDetailResponseDTO(member)
 
 	// Log activity - Create Member
 	s.logActivity(ctx, domain.ActionCreate, domain.ModuleMembers, "Membuat member baru: "+member.FullName, nil, map[string]any{
@@ -210,7 +210,7 @@ func (s *memberService) Update(ctx context.Context, id int, req requests.UpdateM
 		"is_active":    member.IsActive,
 	}, &member.ID)
 
-	return s.toResponseDTO(member), nil
+	return s.toDetailResponseDTO(member), nil
 }
 
 // Delete menghapus member dan foto dari Cloudinary

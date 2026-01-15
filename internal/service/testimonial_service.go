@@ -91,7 +91,7 @@ func (s *testimonialService) Create(ctx context.Context, req requests.CreateTest
 	}
 
 	// Convert to response DTO
-	resp := s.toResponseDTO(testimonial)
+	resp := s.toDetailResponseDTO(testimonial)
 
 	// Log activity - Create Testimonial
 	s.logActivity(ctx, domain.ActionCreate, domain.ModuleTestimoni, "Membuat testimonial baru: "+testimonial.Name, nil, map[string]any{
@@ -227,7 +227,7 @@ func (s *testimonialService) Update(ctx context.Context, id int, req requests.Up
 		"is_active":    testimonial.IsActive,
 	}, &testimonial.ID)
 
-	return s.toResponseDTO(testimonial), nil
+	return s.toDetailResponseDTO(testimonial), nil
 }
 
 // Delete menghapus testimonial dan foto dari Cloudinary
