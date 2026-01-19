@@ -102,7 +102,7 @@ func main() {
 	userService := service.NewUserService(userRepo, cloudinaryService, activityLogRepo)
 	testimonialService := service.NewTestimonialService(testimonialRepo, cloudinaryService, activityLogRepo)
 	memberService := service.NewMemberService(memberRepo, cloudinaryService, activityLogRepo)
-	aboutService := service.NewAboutService(aboutRepo, cloudinaryService)
+	aboutService := service.NewAboutService(aboutRepo)
 	siteSettingService := service.NewSiteSettingService(siteSettingRepo, cloudinaryService)
 	contactService := service.NewContactService(contactRepo)
 	publicAboutService := service.NewPublicAboutService(aboutRepo, memberRepo, contactRepo, cloudinaryService)
@@ -139,7 +139,6 @@ func main() {
 
 	// 10. Setup Routes (dari internal/routes)
 	routes.SetupRoutes(r, authHandler, adminHandler, userHandler, testimonialHandler, memberHandler, aboutHandler, siteSettingHandler, contactHandler, publicAboutHandler, publicHomeHandler, documentHandler, publicDocumentHandler, dashboardHandler, publicSiteSettingHandler, visitorRepo, cfg.Server.AllowedOrigins, cfg.Server.Environment)
-
 
 	// 11. Start Server
 	serverAddr := ":" + cfg.Server.Port

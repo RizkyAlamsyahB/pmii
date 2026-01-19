@@ -12,10 +12,10 @@ type PublicAboutPageResponse struct {
 
 // PublicAboutResponse adalah data about untuk public
 type PublicAboutResponse struct {
+	Title    *string `json:"title,omitempty"`
 	History  *string `json:"history,omitempty"`
 	Vision   *string `json:"vision,omitempty"`
 	Mission  *string `json:"mission,omitempty"`
-	ImageUrl string  `json:"imageUrl,omitempty"`
 	VideoURL *string `json:"videoUrl,omitempty"`
 }
 

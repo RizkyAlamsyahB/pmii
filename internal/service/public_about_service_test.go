@@ -92,10 +92,10 @@ func (m *MockContactRepository) Update(contact *domain.Contact) error {
 
 // Test: GetAboutPage berhasil dengan data lengkap
 func TestPublicAboutGetAboutPage_Success(t *testing.T) {
+	title := "Tentang PMII"
 	history := "Sejarah PMII"
 	vision := "Visi PMII"
 	mission := "Misi PMII"
-	imageURI := "about.jpg"
 	photoURI := "member.jpg"
 	address := "Jl. Test No. 123"
 	email := "contact@pmii.id"
@@ -103,11 +103,11 @@ func TestPublicAboutGetAboutPage_Success(t *testing.T) {
 	mockAboutRepo := &MockAboutRepository{
 		GetFunc: func() (*domain.About, error) {
 			return &domain.About{
-				ID:       1,
-				History:  &history,
-				Vision:   &vision,
-				Mission:  &mission,
-				ImageURI: &imageURI,
+				ID:      1,
+				Title:   &title,
+				History: &history,
+				Vision:  &vision,
+				Mission: &mission,
 			}, nil
 		},
 	}
@@ -122,7 +122,7 @@ func TestPublicAboutGetAboutPage_Success(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{
+	mockCloudinary := &MockCloudinaryService{
 		GetImageURLFunc: func(folder string, filename string) string {
 			return "https://cloudinary.com/" + folder + "/" + filename
 		},
@@ -152,8 +152,8 @@ func TestPublicAboutGetAboutPage_Success(t *testing.T) {
 	if *result.About.History != history {
 		t.Errorf("Expected History '%s', got: '%s'", history, *result.About.History)
 	}
-	if result.About.ImageUrl != "https://cloudinary.com/about/about.jpg" {
-		t.Errorf("Expected ImageUrl, got: '%s'", result.About.ImageUrl)
+	if *result.About.Title != title {
+		t.Errorf("Expected Title '%s', got: '%s'", title, *result.About.Title)
 	}
 
 	// Check departments data (should have 4 departments)
@@ -181,7 +181,7 @@ func TestPublicAboutGetAboutPage_NoAboutData(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{
+	mockCloudinary := &MockCloudinaryService{
 		GetImageURLFunc: func(folder string, filename string) string {
 			return ""
 		},
@@ -223,7 +223,7 @@ func TestPublicAboutGetAboutPage_WithSearch(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{
+	mockCloudinary := &MockCloudinaryService{
 		GetImageURLFunc: func(folder string, filename string) string {
 			return ""
 		},
@@ -254,7 +254,7 @@ func TestPublicAboutGetAboutPage_MemberRepoError(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{}
+	mockCloudinary := &MockCloudinaryService{}
 
 	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	result, err := service.GetAboutPage(context.Background(), 8, "")
@@ -292,7 +292,7 @@ func TestPublicAboutGetMembersByDepartment_Success(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{
+	mockCloudinary := &MockCloudinaryService{
 		GetImageURLFunc: func(folder string, filename string) string {
 			return "https://cloudinary.com/" + folder + "/" + filename
 		},
@@ -337,7 +337,7 @@ func TestPublicAboutGetMembersByDepartment_WithSearch(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{
+	mockCloudinary := &MockCloudinaryService{
 		GetImageURLFunc: func(folder string, filename string) string {
 			return ""
 		},
@@ -371,7 +371,7 @@ func TestPublicAboutGetMembersByDepartment_DefaultPagination(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{
+	mockCloudinary := &MockCloudinaryService{
 		GetImageURLFunc: func(folder string, filename string) string {
 			return ""
 		},
@@ -402,7 +402,7 @@ func TestPublicAboutGetMembersByDepartment_Error(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{}
+	mockCloudinary := &MockCloudinaryService{}
 
 	service := NewPublicAboutService(mockAboutRepo, mockMemberRepo, &MockContactRepository{}, mockCloudinary)
 	_, _, _, _, err := service.GetMembersByDepartment(context.Background(), string(dept), 1, 8, "")
@@ -426,7 +426,7 @@ func TestPublicAboutGetMembersByDepartment_PaginationCalculation(t *testing.T) {
 		},
 	}
 
-	mockCloudinary := &MockAboutCloudinaryService{
+	mockCloudinary := &MockCloudinaryService{
 		GetImageURLFunc: func(folder string, filename string) string {
 			return ""
 		},

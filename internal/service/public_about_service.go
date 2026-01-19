@@ -130,16 +130,11 @@ func (s *publicAboutService) toPublicAboutResponse(a *domain.About) responses.Pu
 		return responses.PublicAboutResponse{}
 	}
 
-	var imageURL string
-	if a.ImageURI != nil {
-		imageURL = s.cloudinaryService.GetImageURL("about", *a.ImageURI)
-	}
-
 	return responses.PublicAboutResponse{
+		Title:    a.Title,
 		History:  a.History,
 		Vision:   a.Vision,
 		Mission:  a.Mission,
-		ImageUrl: imageURL,
 		VideoURL: a.VideoURL,
 	}
 }

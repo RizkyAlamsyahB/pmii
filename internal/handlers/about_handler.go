@@ -40,21 +40,8 @@ func (h *AboutHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// Get image file (optional)
-	imageFile, err := c.FormFile("image")
-	if err != nil && err != http.ErrMissingFile {
-		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Format gambar tidak valid"))
-		return
-	}
-
-	// Validate image size (max 5MB)
-	if imageFile != nil && imageFile.Size > 5*1024*1024 {
-		c.JSON(http.StatusBadRequest, responses.ErrorResponse(400, "Ukuran gambar maksimal 5MB"))
-		return
-	}
-
 	// Call service
-	about, err := h.aboutService.Update(GetContextWithRequestInfo(c), req, imageFile)
+	about, err := h.aboutService.Update(GetContextWithRequestInfo(c), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse(500, err.Error()))
 		return
