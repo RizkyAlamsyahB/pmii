@@ -75,6 +75,9 @@ func main() {
 	}
 	logger.Info.Println("✅ Cloudinary service initialized")
 
+	// Set Cloudinary service to config for use in routes
+	config.InitCloudinary(cloudinaryService)
+
 	// Content seeding (members, testimonials, documents, settings) dijalankan manual
 	// Jalankan dengan: go run cmd/seed/main.go
 	// if cfg.Server.Environment == "development" {

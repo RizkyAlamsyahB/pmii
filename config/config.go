@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/garuda-labs-1/pmii-be/pkg/cloudinary"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
+var CloudinaryService *cloudinary.Service
 
 // Config holds all configuration for the application
 type Config struct {
@@ -117,4 +119,10 @@ func InitDB(cfg *Config) {
 	}
 
 	log.Println("✅ Database connected successfully")
+}
+
+// InitCloudinary initializes the global Cloudinary service
+func InitCloudinary(cld *cloudinary.Service) {
+	CloudinaryService = cld
+	log.Println("✅ Cloudinary service initialized in config")
 }

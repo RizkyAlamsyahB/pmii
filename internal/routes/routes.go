@@ -61,10 +61,17 @@ func SetupRoutes(
 	inboxSvc := service.NewInboxService(inboxRepo, userRepo) // Gunakan userRepo langsung
 	inboxHandler := handlers.NewInboxHandler(inboxSvc)
 
+	// Inisialisasi Dependency untuk Ads Management
+	adRepo := repository.NewAdRepository()
+	adSvc := service.NewAdService(adRepo, config.CloudinaryService, activityLogRepo)
+	adHandler := handlers.NewAdHandler(adSvc)
+	publicAdSvc := service.NewPublicAdService(adRepo, config.CloudinaryService)
+	publicAdHandler := handlers.NewPublicAdHandler(publicAdSvc)
+
 	// Global Middlewares
 	r.Use(middleware.Recovery())
 	r.Use(middleware.CORS(allowedOrigins))
-	r.Use(middleware.RequestInfoMiddleware()) // Inject IP and User-Agent for activity logging
+	r.Use(middleware.RequestInfoMiddleware())     // Inject IP and User-Agent for activity logging
 	r.Use(middleware.VisitorTracker(visitorRepo)) // Track unique visitors per day
 
 	// Rate Limiter untuk login endpoint (60 request per menit = 1 req/s, burst 60)
@@ -123,6 +130,13 @@ func SetupRoutes(
 		v1.GET("/documents", publicDocumentHandler.GetAllPublic)             // GET /v1/documents
 		v1.GET("/documents/:type", publicDocumentHandler.GetByTypePublic)    // GET /v1/documents/:type
 
+		// Public Routes - Ads (No Authentication Required)
+		v1.GET("/ads/pages", publicAdHandler.GetAvailablePages) // GET /v1/ads/pages
+		v1.GET("/ads/:page", publicAdHandler.GetAdsByPage)      // GET /v1/ads/:page
+
+		// Public Routes - Site Settings (No Authentication Required)
+		v1.GET("/settings", publicSiteSettingHandler.Get) // GET /v1/settings
+
 		// Admin Routes - Requires Admin Role (Level 1)
 		adminRoutes := v1.Group("/admin")
 		adminRoutes.Use(middleware.AuthMiddleware(), middleware.RequireRole("1"))
@@ -173,6 +187,13 @@ func SetupRoutes(
 
 			// Activity Log Routes - Admin Only
 			adminRoutes.GET("/activity-logs", activityLogHandler.GetActivityLogs) // GET /v1/admin/activity-logs
+
+			// Ads Management Routes - Admin Only
+			adminRoutes.GET("/ads", adHandler.GetAllAds)                  // GET /v1/admin/ads
+			adminRoutes.GET("/ads/:id", adHandler.GetAdByID)              // GET /v1/admin/ads/:id
+			adminRoutes.GET("/ads/page/:page", adHandler.GetAdsByPage)    // GET /v1/admin/ads/page/:page
+			adminRoutes.PUT("/ads/:id", adHandler.UpdateAd)               // PUT /v1/admin/ads/:id (upload image)
+			adminRoutes.DELETE("/ads/:id/image", adHandler.DeleteAdImage) // DELETE /v1/admin/ads/:id/image
 		}
 
 		// User Routes - Requires Authentication (Any authenticated user)

@@ -27,6 +27,7 @@ const (
 	ModuleDokumen   ActivityModuleType = "dokumen"
 	ModuleSettings  ActivityModuleType = "settings"
 	ModuleAuth      ActivityModuleType = "auth"
+	ModuleAds       ActivityModuleType = "ads"
 )
 
 // ActivityLog represents a log entry for user activities
